@@ -1,6 +1,6 @@
 {
     "name": "kariricode/validator",
-    "description": "Composable, rule-based data validation engine for PHP 8.4+ — #[Validate] attributes, collect-all semantics, i18n messages, zero dependencies. ARFA 1.3.",
+    "description": "Composable, rule-based data validation engine for PHP 8.4+ — #[Validate] attributes, collect-all semantics, i18n messages, powered by kariricode/property-inspector. ARFA 1.3.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -18,7 +18,8 @@
     ],
     "homepage": "https://kariricode.org",
     "require": {
-        "php": "^8.4"
+        "php": "^8.4",
+        "kariricode/property-inspector": "^2.0"
     },
     "autoload": {
         "psr-4": {
