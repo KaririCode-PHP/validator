@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace KaririCode\Validator\Tests\Unit\Core;
 
 use KaririCode\Validator\Configuration\ValidatorConfiguration;
+use KaririCode\Validator\Core\ValidatorEngine;
 use KaririCode\Validator\Provider\ValidatorServiceProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for ValidatorEngine configuration integration (failFast, maxErrors).
  */
+#[CoversClass(ValidatorEngine::class)]
+#[CoversClass(ValidatorConfiguration::class)]
 final class ValidatorEngineConfigTest extends TestCase
 {
     public function testFailFastStopsOnFirstErrorPerField(): void

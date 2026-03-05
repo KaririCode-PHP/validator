@@ -8,8 +8,12 @@ use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Numeric\DecimalRule;
 use KaririCode\Validator\Rule\Numeric\NegativeOrZeroRule;
 use KaririCode\Validator\Rule\Numeric\NegativeRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(DecimalRule::class)]
+#[CoversClass(NegativeRule::class)]
+#[CoversClass(NegativeOrZeroRule::class)]
 final class NewNumericRulesTest extends TestCase
 {
     private function ctx(array $params = []): ValidationContextImpl

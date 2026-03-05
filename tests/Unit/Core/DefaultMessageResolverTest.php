@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace KaririCode\Validator\Tests\Unit\Core;
 
 use KaririCode\Validator\Core\DefaultMessageResolver;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(DefaultMessageResolver::class)]
 final class DefaultMessageResolverTest extends TestCase
 {
     public function testResolvesEnglishByDefault(): void

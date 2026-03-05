@@ -6,9 +6,11 @@ namespace KaririCode\Validator\Tests\Unit\Rule\String;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\String\EmailRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(EmailRule::class)]
 final class EmailRuleTest extends TestCase
 {
     private EmailRule $rule;

@@ -11,8 +11,13 @@ use KaririCode\Validator\Rule\Logic\NotNullRule;
 use KaririCode\Validator\Rule\Logic\NullableRule;
 use KaririCode\Validator\Rule\String\EmailRule;
 use KaririCode\Validator\Rule\String\UrlRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(NullableRule::class)]
+#[CoversClass(NotNullRule::class)]
+#[CoversClass(CallbackRule::class)]
+#[CoversClass(AtLeastOneOfRule::class)]
 final class NewLogicRulesTest extends TestCase
 {
     private function ctx(): ValidationContextImpl

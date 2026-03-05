@@ -6,8 +6,10 @@ namespace KaririCode\Validator\Tests\Unit\Rule\String;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\String\LengthRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(LengthRule::class)]
 final class LengthRuleTest extends TestCase
 {
     private LengthRule $rule;

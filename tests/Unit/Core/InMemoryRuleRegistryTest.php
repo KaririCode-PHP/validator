@@ -8,8 +8,10 @@ use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
 use KaririCode\Validator\Core\InMemoryRuleRegistry;
 use KaririCode\Validator\Exception\InvalidRuleException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(InMemoryRuleRegistry::class)]
 final class InMemoryRuleRegistryTest extends TestCase
 {
     private InMemoryRuleRegistry $registry;

@@ -15,8 +15,19 @@ use KaririCode\Validator\Rule\String\SlugRule;
 use KaririCode\Validator\Rule\String\StartsWithRule;
 use KaririCode\Validator\Rule\String\UlidRule;
 use KaririCode\Validator\Rule\String\UuidRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(AlphaRule::class)]
+#[CoversClass(AlphanumericRule::class)]
+#[CoversClass(UuidRule::class)]
+#[CoversClass(UlidRule::class)]
+#[CoversClass(IpRule::class)]
+#[CoversClass(JsonRule::class)]
+#[CoversClass(HostnameRule::class)]
+#[CoversClass(SlugRule::class)]
+#[CoversClass(StartsWithRule::class)]
+#[CoversClass(EndsWithRule::class)]
 final class NewStringRulesTest extends TestCase
 {
     private function ctx(array $params = []): ValidationContextImpl

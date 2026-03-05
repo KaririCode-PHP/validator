@@ -6,9 +6,11 @@ namespace KaririCode\Validator\Tests\Unit\Rule\Numeric;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Numeric\IntegerRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(IntegerRule::class)]
 final class IntegerRuleTest extends TestCase
 {
     private IntegerRule $rule;

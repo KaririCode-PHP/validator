@@ -6,8 +6,10 @@ namespace KaririCode\Validator\Tests\Unit\Rule\String;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\String\PatternRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(PatternRule::class)]
 final class PatternRuleTest extends TestCase
 {
     private PatternRule $rule;

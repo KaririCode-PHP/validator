@@ -10,8 +10,10 @@ use KaririCode\Validator\Exception\ValidationException;
 use KaririCode\Validator\Integration\ProcessorBridge;
 use KaririCode\Validator\Rule\Logic\RequiredRule;
 use KaririCode\Validator\Rule\String\EmailRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ProcessorBridge::class)]
 final class ProcessorBridgeTest extends TestCase
 {
     private ValidatorEngine $engine;

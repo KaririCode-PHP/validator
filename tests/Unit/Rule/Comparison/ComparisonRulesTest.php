@@ -12,8 +12,16 @@ use KaririCode\Validator\Rule\Comparison\GreaterThanRule;
 use KaririCode\Validator\Rule\Comparison\LessThanOrEqualRule;
 use KaririCode\Validator\Rule\Comparison\LessThanRule;
 use KaririCode\Validator\Rule\Comparison\NotEqualToRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(EqualToRule::class)]
+#[CoversClass(NotEqualToRule::class)]
+#[CoversClass(GreaterThanRule::class)]
+#[CoversClass(GreaterThanOrEqualRule::class)]
+#[CoversClass(LessThanRule::class)]
+#[CoversClass(LessThanOrEqualRule::class)]
+#[CoversClass(BetweenRule::class)]
 final class ComparisonRulesTest extends TestCase
 {
     private function ctx(array $params = []): ValidationContextImpl

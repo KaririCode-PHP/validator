@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace KaririCode\Validator\Tests\Unit\Attribute;
 
 use KaririCode\Validator\Attribute\ValidationGroup;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ValidationGroup::class)]
 final class ValidationGroupTest extends TestCase
 {
     public function testGroups(): void

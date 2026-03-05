@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace KaririCode\Validator\Tests\Unit\Result;
 
 use KaririCode\Validator\Result\ValidationError;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ValidationError::class)]
 final class ValidationErrorTest extends TestCase
 {
     public function testConstructSetsAllProperties(): void

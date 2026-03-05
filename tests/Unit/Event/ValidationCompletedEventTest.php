@@ -6,8 +6,10 @@ namespace KaririCode\Validator\Tests\Unit\Event;
 
 use KaririCode\Validator\Event\ValidationCompletedEvent;
 use KaririCode\Validator\Result\ValidationResult;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ValidationCompletedEvent::class)]
 final class ValidationCompletedEventTest extends TestCase
 {
     public function testProperties(): void

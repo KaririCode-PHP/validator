@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace KaririCode\Validator\Tests\Unit\Core;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ValidationContextImpl::class)]
 final class ValidationContextImplTest extends TestCase
 {
     public function testCreateFactoryMethod(): void

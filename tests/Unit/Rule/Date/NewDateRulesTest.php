@@ -8,8 +8,12 @@ use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Date\DateAfterRule;
 use KaririCode\Validator\Rule\Date\DateBeforeRule;
 use KaririCode\Validator\Rule\Date\DateBetweenRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(DateAfterRule::class)]
+#[CoversClass(DateBeforeRule::class)]
+#[CoversClass(DateBetweenRule::class)]
 final class NewDateRulesTest extends TestCase
 {
     private function ctx(array $params = []): ValidationContextImpl

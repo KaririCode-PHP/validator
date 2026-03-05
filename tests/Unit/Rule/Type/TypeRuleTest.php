@@ -6,9 +6,11 @@ namespace KaririCode\Validator\Tests\Unit\Rule\Type;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Type\TypeRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(TypeRule::class)]
 final class TypeRuleTest extends TestCase
 {
     private TypeRule $rule;

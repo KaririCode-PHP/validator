@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace KaririCode\Validator\Tests\Unit\Configuration;
 
 use KaririCode\Validator\Configuration\ValidatorConfiguration;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ValidatorConfiguration::class)]
 final class ValidatorConfigurationTest extends TestCase
 {
     public function testDefaultValues(): void

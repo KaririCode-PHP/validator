@@ -9,8 +9,10 @@ use KaririCode\Validator\Rule\Logic\CompositeRule;
 use KaririCode\Validator\Rule\Logic\RequiredRule;
 use KaririCode\Validator\Rule\String\EmailRule;
 use KaririCode\Validator\Rule\String\LengthRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(CompositeRule::class)]
 final class CompositeRuleTest extends TestCase
 {
     public function testAllRulesPass(): void

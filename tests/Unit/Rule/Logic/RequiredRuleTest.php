@@ -6,9 +6,11 @@ namespace KaririCode\Validator\Tests\Unit\Rule\Logic;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Logic\RequiredRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(RequiredRule::class)]
 final class RequiredRuleTest extends TestCase
 {
     private RequiredRule $rule;

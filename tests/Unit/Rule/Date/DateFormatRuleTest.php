@@ -6,8 +6,10 @@ namespace KaririCode\Validator\Tests\Unit\Rule\Date;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Date\DateFormatRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(DateFormatRule::class)]
 final class DateFormatRuleTest extends TestCase
 {
     private DateFormatRule $rule;

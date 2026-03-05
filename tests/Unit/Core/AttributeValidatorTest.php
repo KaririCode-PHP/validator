@@ -6,9 +6,14 @@ namespace KaririCode\Validator\Tests\Unit\Core;
 
 use KaririCode\Validator\Attribute\Validate;
 use KaririCode\Validator\Attribute\ValidationGroup;
+use KaririCode\Validator\Core\AttributeValidator;
+use KaririCode\Validator\Core\ValidateAttributeHandler;
 use KaririCode\Validator\Provider\ValidatorServiceProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(AttributeValidator::class)]
+#[CoversClass(ValidateAttributeHandler::class)]
 final class AttributeValidatorTest extends TestCase
 {
     public function testValidatesObjectFromAttributes(): void

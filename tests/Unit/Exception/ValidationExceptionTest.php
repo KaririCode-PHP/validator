@@ -6,8 +6,10 @@ namespace KaririCode\Validator\Tests\Unit\Exception;
 
 use KaririCode\Validator\Exception\ValidationException;
 use KaririCode\Validator\Result\ValidationResult;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ValidationException::class)]
 final class ValidationExceptionTest extends TestCase
 {
     public function testCarriesValidationResult(): void

@@ -6,9 +6,11 @@ namespace KaririCode\Validator\Tests\Unit\Rule\Numeric;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Numeric\PositiveRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(PositiveRule::class)]
 final class PositiveRuleTest extends TestCase
 {
     private PositiveRule $rule;

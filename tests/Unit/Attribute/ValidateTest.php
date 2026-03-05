@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace KaririCode\Validator\Tests\Unit\Attribute;
 
 use KaririCode\Validator\Attribute\Validate;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Validate::class)]
 final class ValidateTest extends TestCase
 {
     public function testStringRules(): void

@@ -6,8 +6,10 @@ namespace KaririCode\Validator\Tests\Unit\Rule\Numeric;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Numeric\RangeRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(RangeRule::class)]
 final class RangeRuleTest extends TestCase
 {
     private RangeRule $rule;

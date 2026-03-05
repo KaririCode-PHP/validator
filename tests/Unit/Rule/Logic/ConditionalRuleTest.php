@@ -7,8 +7,10 @@ namespace KaririCode\Validator\Tests\Unit\Rule\Logic;
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Logic\ConditionalRule;
 use KaririCode\Validator\Rule\Logic\RequiredRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ConditionalRule::class)]
 final class ConditionalRuleTest extends TestCase
 {
     public function testAppliesRuleWhenConditionMet(): void

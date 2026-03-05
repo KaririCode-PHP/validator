@@ -8,9 +8,11 @@ use KaririCode\Validator\Contract\RuleRegistry;
 use KaririCode\Validator\Core\AttributeValidator;
 use KaririCode\Validator\Core\ValidatorEngine;
 use KaririCode\Validator\Provider\ValidatorServiceProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ValidatorServiceProvider::class)]
 final class ValidatorServiceProviderTest extends TestCase
 {
     private ValidatorServiceProvider $provider;

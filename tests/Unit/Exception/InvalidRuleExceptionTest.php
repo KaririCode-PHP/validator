@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace KaririCode\Validator\Tests\Unit\Exception;
 
 use KaririCode\Validator\Exception\InvalidRuleException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(InvalidRuleException::class)]
 final class InvalidRuleExceptionTest extends TestCase
 {
     public function testDuplicateAlias(): void

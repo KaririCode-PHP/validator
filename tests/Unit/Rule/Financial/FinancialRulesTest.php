@@ -8,8 +8,12 @@ use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Financial\BicRule;
 use KaririCode\Validator\Rule\Financial\IbanRule;
 use KaririCode\Validator\Rule\Financial\LuhnRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(LuhnRule::class)]
+#[CoversClass(IbanRule::class)]
+#[CoversClass(BicRule::class)]
 final class FinancialRulesTest extends TestCase
 {
     private function ctx(): ValidationContextImpl

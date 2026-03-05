@@ -6,8 +6,10 @@ namespace KaririCode\Validator\Tests\Unit\Rule\Logic;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Logic\ChoiceRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ChoiceRule::class)]
 final class ChoiceRuleTest extends TestCase
 {
     private ChoiceRule $rule;

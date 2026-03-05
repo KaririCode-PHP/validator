@@ -9,8 +9,13 @@ use KaririCode\Validator\Rule\Brazilian\CepRule;
 use KaririCode\Validator\Rule\Brazilian\CnpjRule;
 use KaririCode\Validator\Rule\Brazilian\CpfRule;
 use KaririCode\Validator\Rule\Brazilian\PisRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(CpfRule::class)]
+#[CoversClass(CnpjRule::class)]
+#[CoversClass(CepRule::class)]
+#[CoversClass(PisRule::class)]
 final class BrazilianRulesTest extends TestCase
 {
     private function ctx(): ValidationContextImpl

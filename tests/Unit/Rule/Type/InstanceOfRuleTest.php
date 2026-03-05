@@ -6,8 +6,10 @@ namespace KaririCode\Validator\Tests\Unit\Rule\Type;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Type\InstanceOfRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(InstanceOfRule::class)]
 final class InstanceOfRuleTest extends TestCase
 {
     private InstanceOfRule $rule;

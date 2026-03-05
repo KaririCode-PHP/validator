@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace KaririCode\Validator\Tests\Unit\Event;
 
 use KaririCode\Validator\Event\ValidationStartedEvent;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ValidationStartedEvent::class)]
 final class ValidationStartedEventTest extends TestCase
 {
     public function testProperties(): void

@@ -9,8 +9,12 @@ use KaririCode\Validator\Rule\Collection\EachRule;
 use KaririCode\Validator\Rule\Collection\KeyExistsRule;
 use KaririCode\Validator\Rule\Collection\UniqueElementsRule;
 use KaririCode\Validator\Rule\String\EmailRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(EachRule::class)]
+#[CoversClass(KeyExistsRule::class)]
+#[CoversClass(UniqueElementsRule::class)]
 final class NewCollectionRulesTest extends TestCase
 {
     private function ctx(array $params = []): ValidationContextImpl

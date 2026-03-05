@@ -9,8 +9,13 @@ use KaririCode\Validator\Rule\CrossField\DifferentFromRule;
 use KaririCode\Validator\Rule\CrossField\RequiredWithRule;
 use KaririCode\Validator\Rule\CrossField\RequiredWithoutRule;
 use KaririCode\Validator\Rule\CrossField\SameAsRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(SameAsRule::class)]
+#[CoversClass(DifferentFromRule::class)]
+#[CoversClass(RequiredWithRule::class)]
+#[CoversClass(RequiredWithoutRule::class)]
 final class CrossFieldRulesTest extends TestCase
 {
     private function ctx(array $rootData, array $params): ValidationContextImpl

@@ -6,9 +6,11 @@ namespace KaririCode\Validator\Tests\Unit\Rule\String;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\String\UrlRule;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(UrlRule::class)]
 final class UrlRuleTest extends TestCase
 {
     private UrlRule $rule;
