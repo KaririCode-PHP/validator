@@ -10,23 +10,39 @@ use KaririCode\Validator\Contract\ValidationRule;
 /**
  * Validates Brazilian CNPJ (Cadastro Nacional da Pessoa Jurídica).
  *
- * Implements the Receita Federal check-digit algorithm.
- * Accepts formatted (00.000.000/0000-00) or unformatted input.
+ * Supports both formats:
+ *  - Legacy numeric  (IN RFB nº 2.119/2022): 14 digits, e.g. 11.222.333/0001-81
+ *  - Alphanumeric    (IN RFB nº 2.229/2024): 12 alphanumeric chars + 2 numeric
+ *    check digits, e.g. AB.3D4.5GH/JK00-41  (effective July 2026)
+ *
+ * Algorithm — Módulo 11 (both formats):
+ *   Each character's numeric value is: digit → digit itself; letter → ord(A-Z) - 48
+ *   (A=17, B=18, … Z=42). The same weights and check-digit logic apply.
+ *
+ * Forbidden characters in alphanumeric CNPJs: I, O, Q (visual ambiguity with
+ * digits 1, 0, 0) per Nota Técnica Conjunta RFB nº 2025.001.
  *
  * References:
- * - Receita Federal do Brasil — Instrução Normativa RFB nº 2.119/2022
+ *  - Instrução Normativa RFB nº 2.229, 15/10/2024
+ *  - Nota Técnica Conjunta nº 2025.001
  *
  * @package KaririCode\Validator\Rule\Brazilian
  * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * @since   3.2.0 ARFA 1.3
  */
 final readonly class CnpjRule implements ValidationRule
 {
-    private const BLACKLIST = [
-        '00000000000000', '11111111111111', '22222222222222', '33333333333333',
-        '44444444444444', '55555555555555', '66666666666666', '77777777777777',
-        '88888888888888', '99999999999999',
-    ];
+    /**
+     * Characters forbidden in the alphanumeric CNPJ body (positions 1–12).
+     * I, O, Q cause visual ambiguity; excluded per official spec.
+     */
+    private const FORBIDDEN = ['I', 'O', 'Q'];
+
+    /** Weights for the first check digit calculation. */
+    private const WEIGHTS_1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+    /** Weights for the second check digit calculation. */
+    private const WEIGHTS_2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 
     public function validate(mixed $value, ValidationContext $context): bool
     {
@@ -34,39 +50,39 @@ final readonly class CnpjRule implements ValidationRule
             return false;
         }
 
-        $digits = preg_replace('/\D/', '', $value);
+        // Strip formatting characters: dots, slashes, hyphens
+        $cnpj = preg_replace('/[.\-\/]/', '', strtoupper($value));
 
-        if ($digits === null || strlen($digits) !== 14) {
+        if ($cnpj === null || strlen($cnpj) !== 14) {
             return false;
         }
 
-        if (in_array($digits, self::BLACKLIST, true)) {
+        // Check digits (positions 13–14) must always be numeric
+        if (!ctype_digit(substr($cnpj, 12, 2))) {
             return false;
         }
 
-        // First check digit — weights: 5,4,3,2,9,8,7,6,5,4,3,2
-        $weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-        $sum = 0;
-        for ($i = 0; $i < 12; ++$i) {
-            $sum += (int) $digits[$i] * $weights1[$i];
-        }
-        $remainder = $sum % 11;
-        $firstCheck = $remainder < 2 ? 0 : 11 - $remainder;
-
-        if ((int) $digits[12] !== $firstCheck) {
+        // Body (positions 1–12) must be digits or A–Z, without forbidden chars
+        $body = substr($cnpj, 0, 12);
+        if (!$this->isValidBody($body)) {
             return false;
         }
 
-        // Second check digit — weights: 6,5,4,3,2,9,8,7,6,5,4,3,2
-        $weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-        $sum = 0;
-        for ($i = 0; $i < 13; ++$i) {
-            $sum += (int) $digits[$i] * $weights2[$i];
+        // Reject uniform sequences (all same character), e.g. "000000000000"
+        if (strlen(count_chars($body, 3)) === 1 && $body[0] === $cnpj[12] && $body[0] === $cnpj[13]) {
+            return false;
         }
-        $remainder = $sum % 11;
-        $secondCheck = $remainder < 2 ? 0 : 11 - $remainder;
 
-        return (int) $digits[13] === $secondCheck;
+        // Módulo 11 — first check digit
+        $firstCheck = $this->computeCheckDigit($body, self::WEIGHTS_1);
+        if ((int) $cnpj[12] !== $firstCheck) {
+            return false;
+        }
+
+        // Módulo 11 — second check digit
+        $secondCheck = $this->computeCheckDigit($body . $cnpj[12], self::WEIGHTS_2);
+
+        return (int) $cnpj[13] === $secondCheck;
     }
 
     public function getErrorCode(): string
@@ -77,5 +93,52 @@ final readonly class CnpjRule implements ValidationRule
     public function getDefaultMessage(): string
     {
         return 'The {field} is not a valid CNPJ.';
+    }
+
+    // ── Private helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Validates the 12-character body: only [A-Z0-9] excluding forbidden letters.
+     */
+    private function isValidBody(string $body): bool
+    {
+        for ($i = 0; $i < 12; ++$i) {
+            $c = $body[$i];
+            if (!ctype_alnum($c)) {
+                return false;
+            }
+            if (in_array($c, self::FORBIDDEN, true)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Converts a single character to its numeric value for Módulo 11:
+     *   - digit  → (int) digit
+     *   - letter → ord(char) - 48  (A=17, B=18, … Z=42)
+     */
+    private function charNumericValue(string $c): int
+    {
+        return ctype_alpha($c) ? ord($c) - 48 : (int) $c;
+    }
+
+    /**
+     * Computes a single Módulo 11 check digit from an input string and weights.
+     * Returns 0 when remainder < 2, otherwise 11 - remainder.
+     */
+    private function computeCheckDigit(string $input, array $weights): int
+    {
+        $sum = 0;
+        $len = strlen($input);
+
+        for ($i = 0; $i < $len; ++$i) {
+            $sum += $this->charNumericValue($input[$i]) * $weights[$i];
+        }
+
+        $remainder = $sum % 11;
+
+        return $remainder < 2 ? 0 : 11 - $remainder;
     }
 }
