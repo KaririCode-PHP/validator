@@ -56,4 +56,9 @@ final class UrlRuleTest extends TestCase
     {
         $this->assertSame('string.url', $this->rule->getErrorCode());
     }
+
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must be a valid URL.', $this->rule->getDefaultMessage());
+    }
 }

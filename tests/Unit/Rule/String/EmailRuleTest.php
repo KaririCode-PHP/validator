@@ -62,4 +62,9 @@ final class EmailRuleTest extends TestCase
     {
         $this->assertSame('string.email', $this->rule->getErrorCode());
     }
+
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must be a valid email address.', $this->rule->getDefaultMessage());
+    }
 }

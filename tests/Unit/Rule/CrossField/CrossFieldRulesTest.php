@@ -112,6 +112,16 @@ final class CrossFieldRulesTest extends TestCase
         $this->assertTrue($rule->validate('', $ctx)); // Other present → rule doesn't apply
     }
 
+    public function testRequiredWithoutNullAndWhitespace(): void
+    {
+        $rule = new RequiredWithoutRule();
+        $ctx = $this->ctx([], ['other' => 'phone']);
+        // isEmpty(null) branch
+        $this->assertFalse($rule->validate(null, $ctx));
+        // isEmpty(string-whitespace) branch
+        $this->assertFalse($rule->validate('   ', $ctx));
+    }
+
     // ── Error codes ──
     public function testErrorCodes(): void
     {
@@ -119,5 +129,30 @@ final class CrossFieldRulesTest extends TestCase
         $this->assertSame('crossfield.different_from', (new DifferentFromRule())->getErrorCode());
         $this->assertSame('crossfield.required_with', (new RequiredWithRule())->getErrorCode());
         $this->assertSame('crossfield.required_without', (new RequiredWithoutRule())->getErrorCode());
+    }
+
+    public function testRequiredWithEmptyArrayValues(): void
+    {
+        // isEmpty(array=[]) should return true — rule doesn't apply when other is empty array
+        $ruleWith = new RequiredWithRule();
+        $ctx = $this->ctx(['phone' => []], ['other' => 'phone']);
+        $this->assertTrue($ruleWith->validate('', $ctx)); // phone is empty array → rule skipped
+
+        // isEmpty(array=[]) for the value itself
+        $ctx2 = $this->ctx(['phone' => '+551199'], ['other' => 'phone']);
+        $this->assertFalse($ruleWith->validate([], $ctx2)); // phone present → this must be non-empty
+
+        // RequiredWithout: value=[] should also be considered empty
+        $ruleWithout = new RequiredWithoutRule();
+        $ctx3 = $this->ctx([], ['other' => 'phone']);
+        $this->assertFalse($ruleWithout->validate([], $ctx3));
+    }
+
+    public function testDefaultMessages(): void
+    {
+        $this->assertSame('The {field} must match {other}.', (new SameAsRule())->getDefaultMessage());
+        $this->assertSame('The {field} must differ from {other}.', (new DifferentFromRule())->getDefaultMessage());
+        $this->assertSame('The {field} is required when {other} is present.', (new RequiredWithRule())->getDefaultMessage());
+        $this->assertSame('The {field} is required when {other} is absent.', (new RequiredWithoutRule())->getDefaultMessage());
     }
 }

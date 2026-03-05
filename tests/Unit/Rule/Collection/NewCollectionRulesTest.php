@@ -68,4 +68,18 @@ final class NewCollectionRulesTest extends TestCase
     {
         $this->assertFalse((new KeyExistsRule())->validate(['a' => 1], $this->ctx()));
     }
+
+    public function testErrorCodes(): void
+    {
+        $this->assertSame('collection.each', (new EachRule(new \KaririCode\Validator\Rule\Logic\RequiredRule()))->getErrorCode());
+        $this->assertSame('collection.key_exists', (new KeyExistsRule())->getErrorCode());
+        $this->assertSame('collection.unique', (new UniqueElementsRule())->getErrorCode());
+    }
+
+    public function testDefaultMessages(): void
+    {
+        $this->assertSame('Each item in {field} must be valid.', (new EachRule(new \KaririCode\Validator\Rule\Logic\RequiredRule()))->getDefaultMessage());
+        $this->assertSame('The {field} must contain only unique values.', (new UniqueElementsRule())->getDefaultMessage());
+        $this->assertSame('The {field} must contain the key {key}.', (new KeyExistsRule())->getDefaultMessage());
+    }
 }

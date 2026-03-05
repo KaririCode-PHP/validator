@@ -81,6 +81,11 @@ final class CountRuleTest extends TestCase
         $this->assertSame('collection.count', $this->rule->getErrorCode());
     }
 
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must contain between {min} and {max} items.', $this->rule->getDefaultMessage());
+    }
+
     private function ctx(array $params): ValidationContextImpl
     {
         return ValidationContextImpl::create([])->withField('f')->withParameters($params);

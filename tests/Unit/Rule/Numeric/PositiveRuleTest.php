@@ -57,4 +57,9 @@ final class PositiveRuleTest extends TestCase
     {
         $this->assertSame('numeric.positive', $this->rule->getErrorCode());
     }
+
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must be a positive number.', $this->rule->getDefaultMessage());
+    }
 }

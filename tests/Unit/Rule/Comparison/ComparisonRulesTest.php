@@ -102,5 +102,37 @@ final class ComparisonRulesTest extends TestCase
         $this->assertSame('comparison.greater_than', (new GreaterThanRule())->getErrorCode());
         $this->assertSame('comparison.less_than', (new LessThanRule())->getErrorCode());
         $this->assertSame('comparison.between', (new BetweenRule())->getErrorCode());
+        $this->assertSame('comparison.greater_than_or_equal', (new GreaterThanOrEqualRule())->getErrorCode());
+        $this->assertSame('comparison.less_than_or_equal', (new LessThanOrEqualRule())->getErrorCode());
+    }
+
+    public function testDefaultMessages(): void
+    {
+        $this->assertSame('The {field} must be equal to {expected}.', (new EqualToRule())->getDefaultMessage());
+        $this->assertSame('The {field} must not be equal to {expected}.', (new NotEqualToRule())->getDefaultMessage());
+        $this->assertSame('The {field} must be greater than {threshold}.', (new GreaterThanRule())->getDefaultMessage());
+        $this->assertSame('The {field} must be less than {threshold}.', (new LessThanRule())->getDefaultMessage());
+        $this->assertSame('The {field} must be between {min} and {max}.', (new BetweenRule())->getDefaultMessage());
+        $this->assertSame('The {field} must be greater than or equal to {threshold}.', (new GreaterThanOrEqualRule())->getDefaultMessage());
+        $this->assertSame('The {field} must be less than or equal to {threshold}.', (new LessThanOrEqualRule())->getDefaultMessage());
+    }
+
+    public function testNonNumericReturnsFalse(): void
+    {
+        $ctx = $this->ctx(['threshold' => 10]);
+        $this->assertFalse((new LessThanRule())->validate('abc', $ctx));
+        $this->assertFalse((new GreaterThanOrEqualRule())->validate('abc', $ctx));
+        $this->assertFalse((new LessThanOrEqualRule())->validate('abc', $ctx));
+        $this->assertFalse((new BetweenRule())->validate('abc', $this->ctx(['min' => 1, 'max' => 10])));
+    }
+
+    public function testGreaterThanOrEqualNullThreshold(): void
+    {
+        $this->assertFalse((new GreaterThanOrEqualRule())->validate(5, $this->ctx([])));
+    }
+
+    public function testLessThanOrEqualNullThreshold(): void
+    {
+        $this->assertFalse((new LessThanOrEqualRule())->validate(5, $this->ctx([])));
     }
 }

@@ -61,6 +61,11 @@ final class PatternRuleTest extends TestCase
         $this->assertSame('string.pattern', $this->rule->getErrorCode());
     }
 
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} format is invalid.', $this->rule->getDefaultMessage());
+    }
+
     private function ctx(array $params): ValidationContextImpl
     {
         return ValidationContextImpl::create([])->withField('f')->withParameters($params);

@@ -51,4 +51,9 @@ final class NotEmptyRuleTest extends TestCase
     {
         $this->assertSame('string.not_empty', $this->rule->getErrorCode());
     }
+
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must not be empty.', $this->rule->getDefaultMessage());
+    }
 }

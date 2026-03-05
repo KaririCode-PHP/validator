@@ -85,4 +85,9 @@ final class ChoiceRuleTest extends TestCase
 
         $this->assertTrue($this->rule->validate(null, $ctx));
     }
+
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} value is not a valid choice.', $this->rule->getDefaultMessage());
+    }
 }

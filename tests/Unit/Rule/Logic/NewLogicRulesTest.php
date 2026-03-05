@@ -91,4 +91,12 @@ final class NewLogicRulesTest extends TestCase
         $this->assertSame('logic.callback', (new CallbackRule(fn () => true))->getErrorCode());
         $this->assertSame('logic.at_least_one_of', (new AtLeastOneOfRule())->getErrorCode());
     }
+
+    public function testDefaultMessages(): void
+    {
+        $this->assertSame('The {field} must be null or valid.', (new NullableRule())->getDefaultMessage());
+        $this->assertSame('The {field} must not be null.', (new NotNullRule())->getDefaultMessage());
+        $this->assertSame('The {field} must pass at least one validation rule.', (new AtLeastOneOfRule())->getDefaultMessage());
+        $this->assertSame('The {field} is invalid.', (new CallbackRule(fn () => true))->getDefaultMessage());
+    }
 }

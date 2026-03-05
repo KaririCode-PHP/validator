@@ -52,6 +52,7 @@ final readonly class IbanRule implements ValidationRule
             return bcmod($numeric, '97') === '1';
         }
 
+        // @codeCoverageIgnoreStart
         // Fallback: chunked modulo for systems without bcmath
         return $this->mod97($numeric) === 1;
     }
@@ -66,6 +67,7 @@ final readonly class IbanRule implements ValidationRule
 
         return $remainder;
     }
+    // @codeCoverageIgnoreEnd
 
     public function getErrorCode(): string
     {

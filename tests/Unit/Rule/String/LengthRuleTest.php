@@ -86,6 +86,11 @@ final class LengthRuleTest extends TestCase
         $this->assertSame('string.length', $this->rule->getErrorCode());
     }
 
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must be between {min} and {max} characters.', $this->rule->getDefaultMessage());
+    }
+
     private function ctx(array $params): ValidationContextImpl
     {
         return ValidationContextImpl::create([])->withField('f')->withParameters($params);

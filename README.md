@@ -1,36 +1,37 @@
-# KaririCode\Validator
+# KaririCode Validator
 
-**The most complete PHP 8.4+ validation engine — 57 rules, zero dependencies.**
+<div align="center">
 
-[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.4-blue)](https://www.php.net/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![ARFA](https://img.shields.io/badge/ARFA-1.3-orange)]()
-[![Rules](https://img.shields.io/badge/rules-57-brightgreen)]()
+[![PHP 8.4+](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
+[![PHPStan Level 9](https://img.shields.io/badge/PHPStan-Level%209-4F46E5)](https://phpstan.org/)
+[![Rules](https://img.shields.io/badge/Rules-57-22c55e)](https://kariricode.org)
+[![Zero Dependencies](https://img.shields.io/badge/Dependencies-0-22c55e)](composer.json)
+[![ARFA](https://img.shields.io/badge/ARFA-1.3-orange)](https://kariricode.org)
+[![KaririCode Framework](https://img.shields.io/badge/KaririCode-Framework-orange)](https://kariricode.org)
 
-Part of the [KaririCode Framework](https://github.com/kariricode) processing ecosystem.
+**The most complete PHP 8.4+ validation engine — 57 rules, i18n, zero dependencies.**
 
-## Why KaririCode\Validator
+[Installation](#installation) · [Quick Start](#quick-start) · [DTO Validation](#attribute-driven-dto-validation) · [All 57 Rules](#all-57-rules) · [Architecture](#architecture)
 
-| Feature | Symfony | Respect | Laravel | **KaririCode** |
-|---------|---------|---------|---------|----------------|
-| External dependencies | 7+ symfony/* | 1 (stringifier) | 10+ illuminate/* | **0** |
-| PHP version | 8.2+ | 8.5+ (v3) | 8.2+ | **8.4+** |
-| Rules | ~80 | ~150 | ~90 | **57** (52 registered + 5 programmatic) |
-| `final readonly` rules | ✗ | ✗ | ✗ | **✓** |
-| PHPStan level 9 ready | Partial | ✗ | ✗ | **✓** |
-| Brazilian documents | ✗ | ✗ | ✗ | **CPF, CNPJ, CEP, PIS** |
-| Cross-field validation | ✓ | ✓ | ✓ | **✓** |
-| Attribute-driven DTOs | ✓ | ✗ | ✗ | **✓** |
-| Fail-fast + maxErrors | ✗ | ✗ | ✓ (bail) | **✓** |
-| i18n (EN, PT-BR, ES) | ✓ | ✗ | ✓ | **✓** |
+</div>
 
-## Installation
+---
 
-```bash
-composer require kariricode/validator
+## The Problem
+
+Every PHP validation library forces a painful choice: zero dependencies and limited rules, or a full ecosystem and 10+ transitive packages:
+
+```php
+// Symfony Validator: 7+ symfony/* packages, complex DI requirement
+// Respect\Validation: global state, hard to unit-test
+// Laravel Validator: 10+ illuminate/* packages, framework-dependent
+
+// None offer: final readonly rules + PHPStan L9 + Brazilian documents
+//             + i18n + cross-field validation + collect-all semantics — all at once.
 ```
 
-## Quick Start
+## The Solution
 
 ```php
 use KaririCode\Validator\Provider\ValidatorServiceProvider;
@@ -38,11 +39,56 @@ use KaririCode\Validator\Provider\ValidatorServiceProvider;
 $engine = (new ValidatorServiceProvider())->createEngine();
 
 $result = $engine->validate(
-    data: [
-        'email' => 'invalid-email',
-        'age'   => -5,
-        'name'  => '',
+    data: ['email' => 'invalid', 'age' => -5, 'cpf' => '529.982.247-25'],
+    fieldRules: [
+        'email' => ['required', 'email'],
+        'age'   => ['required', 'positive'],
+        'cpf'   => ['cpf'],
     ],
+);
+
+if (!$result->isValid()) {
+    foreach ($result->getErrors() as $error) {
+        echo "{$error->field}: [{$error->errorCode}] {$error->message}\n";
+    }
+}
+// email: [string.email] The email must be a valid email address.
+// age: [numeric.positive] The age must be a positive number.
+// cpf: valid — no error
+```
+
+---
+
+## Requirements
+
+| Requirement | Version |
+|---|---|
+| PHP | 8.4 or higher |
+| kariricode/property-inspector | ^2.0 |
+
+---
+
+## Installation
+
+```bash
+composer require kariricode/validator
+```
+
+---
+
+## Quick Start
+
+```php
+<?php
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+use KaririCode\Validator\Provider\ValidatorServiceProvider;
+
+$engine = (new ValidatorServiceProvider())->createEngine();
+
+$result = $engine->validate(
+    data: ['email' => 'invalid-email', 'age' => -5, 'name' => ''],
     fieldRules: [
         'email' => ['required', 'email'],
         'age'   => ['required', 'positive'],
@@ -59,6 +105,8 @@ if (!$result->isValid()) {
 // age: [numeric.positive] The age must be a positive number.
 // name: [string.length] The name must be between 2 and 100 characters.
 ```
+
+---
 
 ## Attribute-Driven DTO Validation
 
@@ -82,12 +130,31 @@ final class CreateUserRequest
 }
 
 $validator = (new ValidatorServiceProvider())->createAttributeValidator();
-$result = $validator->validate(new CreateUserRequest(
+$result    = $validator->validate(new CreateUserRequest(
     email: 'walmir@kariricode.org',
     password: 'secret',
     cpf: '529.982.247-25',
 ), group: 'create');
 ```
+
+---
+
+## Comparison with Alternatives
+
+| Feature | Symfony | Respect | Laravel | **KaririCode** |
+|---|---|---|---|---|
+| External dependencies | 7+ symfony/* | 1 (stringifier) | 10+ illuminate/* | **0** |
+| PHP version | 8.2+ | 8.5+ (v3) | 8.2+ | **8.4+** |
+| Rules | ~80 | ~150 | ~90 | **57** (52 registered + 5 programmatic) |
+| `final readonly` rules | ✗ | ✗ | ✗ | **✓** |
+| PHPStan level 9 ready | Partial | ✗ | ✗ | **✓** |
+| Brazilian documents | ✗ | ✗ | ✗ | **CPF, CNPJ, CEP, PIS** |
+| Cross-field validation | ✓ | ✓ | ✓ | **✓** |
+| Attribute-driven DTOs | ✓ | ✗ | ✗ | **✓** |
+| Fail-fast + maxErrors | ✗ | ✗ | ✓ (bail) | **✓** |
+| i18n (EN, PT-BR, ES) | ✓ | ✗ | ✓ | **✓** |
+
+---
 
 ## Cross-Field Validation
 
@@ -106,41 +173,38 @@ $result = $engine->validate(
 );
 ```
 
+---
+
 ## Brazilian Document Validation
 
 ```php
 $result = $engine->validate(
-    data: [
-        'cpf'  => '529.982.247-25',
-        'cnpj' => '11.222.333/0001-81',
-        'cep'  => '63100-000',
-        'pis'  => '12345678905',
-    ],
-    fieldRules: [
-        'cpf'  => ['cpf'],
-        'cnpj' => ['cnpj'],
-        'cep'  => ['cep'],
-        'pis'  => ['pis'],
-    ],
+    data: ['cpf' => '529.982.247-25', 'cnpj' => '11.222.333/0001-81', 'cep' => '63100-000', 'pis' => '12345678905'],
+    fieldRules: ['cpf' => ['cpf'], 'cnpj' => ['cnpj'], 'cep' => ['cep'], 'pis' => ['pis']],
 );
 ```
 
-## Financial Validation
+---
+
+## i18n Messages
 
 ```php
-$result = $engine->validate(
-    data: [
-        'card' => '4532015112830366',
-        'iban' => 'GB29NWBK60161331926819',
-        'bic'  => 'NWBKGB2L',
-    ],
-    fieldRules: [
-        'card' => ['luhn'],
-        'iban' => ['iban'],
-        'bic'  => ['bic'],
-    ],
-);
+use KaririCode\Validator\Core\DefaultMessageResolver;
+
+// Built-in: EN, PT-BR, ES with fallback chain
+$resolver = new DefaultMessageResolver('pt_BR');
+$engine   = (new ValidatorServiceProvider())->createEngine(messageResolver: $resolver);
+// "O campo email é obrigatório." instead of "The email field is required."
+
+// Custom messages
+$resolver->addMessage('en', 'logic.required', '{field} cannot be blank!');
+$resolver->addMessages('de', [
+    'logic.required' => '{field} ist erforderlich.',
+    'string.email'   => '{field} muss eine gültige E-Mail sein.',
+]);
 ```
+
+---
 
 ## Fail-Fast & Max Errors
 
@@ -156,30 +220,12 @@ $config = new ValidatorConfiguration(maxErrorsPerField: 2);
 $engine = (new ValidatorServiceProvider())->createEngine($config);
 ```
 
-## i18n Messages
-
-```php
-use KaririCode\Validator\Core\DefaultMessageResolver;
-
-// Built-in: EN, PT-BR, ES with fallback chain
-$resolver = new DefaultMessageResolver('pt_BR');
-$engine = (new ValidatorServiceProvider())->createEngine(
-    messageResolver: $resolver,
-);
-// "O campo email é obrigatório." instead of "The email field is required."
-
-// Custom messages
-$resolver->addMessage('en', 'logic.required', '{field} cannot be blank!');
-$resolver->addMessages('de', [
-    'logic.required' => '{field} ist erforderlich.',
-    'string.email'   => '{field} muss eine gültige E-Mail sein.',
-]);
-```
+---
 
 ## All 57 Rules
 
 | Category | Rules | Aliases |
-|----------|-------|---------|
+|---|---|---|
 | **Logic** (8) | Required, Choice, NotNull, Nullable, Callback*, Composite*, Conditional*, AtLeastOneOf* | `required`, `choice`, `not_null`, `nullable` |
 | **String** (15) | Email, Url, Length, Pattern, NotEmpty, Alpha, Alphanumeric, Uuid, Ulid, Ip, Json, Hostname, Slug, StartsWith, EndsWith | `email`, `url`, `length`, `pattern`, `not_empty`, `alpha`, `alphanumeric`, `uuid`, `ulid`, `ip`, `json`, `hostname`, `slug`, `starts_with`, `ends_with` |
 | **Numeric** (6) | Range, Positive, Integer, Negative, NegativeOrZero, Decimal | `range`, `positive`, `integer`, `negative`, `negative_or_zero`, `decimal` |
@@ -193,6 +239,8 @@ $resolver->addMessages('de', [
 
 *\* Require constructor arguments — used programmatically, not via alias.*
 
+---
+
 ## Custom Rules
 
 ```php
@@ -205,15 +253,16 @@ final readonly class PhoneRule implements ValidationRule
         return is_string($value) && preg_match('/^\+?[\d\s()-]{10,}$/', $value) === 1;
     }
 
-    public function getErrorCode(): string { return 'custom.phone'; }
+    public function getErrorCode(): string    { return 'custom.phone'; }
     public function getDefaultMessage(): string { return 'The {field} must be a valid phone number.'; }
 }
 
-// Register
 $provider = new ValidatorServiceProvider();
 $registry = $provider->createRegistry();
 $registry->register('phone', new PhoneRule());
 ```
+
+---
 
 ## Engine API (Programmatic)
 
@@ -232,10 +281,10 @@ $result->errorsFor('email');     // [ValidationError{field, errorCode, message, 
 $result->firstErrorFor('age');   // ValidationError or null
 
 // Merge results from multiple validation passes
-$result1 = $engine->validate($data, $rules1);
-$result2 = $engine->validate($data, $rules2);
 $merged = $result1->merge($result2);
 ```
+
+---
 
 ## Ecosystem Position
 
@@ -247,25 +296,94 @@ Cross-Layer:      Request DTO ↔ Mapper ↔ Domain Entity ↔ Mapper ↔ Respon
 
 The Validator is the **first gate** — it checks correctness before any data processing. Returns structured errors with i18n messages; never mutates input.
 
+---
+
 ## Architecture
 
-- ARFA 1.3 compliant (immutable context, reactive pipeline, observability events)
-- Quality Directive V4.0 (all rules `final readonly`, zero dependencies)
-- See [docs/](docs/) for 5 ADRs, 3 SPECs, and compliance report
+### Source layout
 
-## Metrics
+```
+src/
+├── Attribute/       Validate · ValidationGroup — DTO annotation support
+├── Configuration/   ValidatorConfiguration (immutable, fail-fast, maxErrors)
+├── Contract/        ValidationRule · ValidationContext · ValidatorEngine · RuleRegistry
+├── Core/            ValidatorEngine · ValidationContextImpl · InMemoryRuleRegistry
+│                    DefaultMessageResolver (EN, PT-BR, ES)
+├── Exception/       ValidationException · InvalidRuleException
+├── Provider/        ValidatorServiceProvider — factory for engine & attribute validator
+└── Rule/
+    ├── Brazilian/   CPF · CNPJ · CEP · PIS
+    ├── Collection/  Count · UniqueElements · KeyExists · Each
+    ├── Comparison/  EqualTo · NotEqualTo · GreaterThan … Between
+    ├── CrossField/  SameAs · DifferentFrom · RequiredWith · RequiredWithout
+    ├── Date/        DateFormat · DateBefore · DateAfter · DateBetween
+    ├── Financial/   Luhn · Iban · Bic
+    ├── Logic/       Required · Choice · NotNull · Nullable · Callback · Composite …
+    ├── Numeric/     Range · Positive · Integer · Negative · NegativeOrZero · Decimal
+    ├── String/      Email · Url · Length · Pattern · NotEmpty · Alpha … EndsWith
+    └── Type/        Type · InstanceOf
+```
+
+### Key design decisions
+
+| Decision | Rationale | ADR |
+|---|---|---|
+| Collect-all semantics | All errors returned — no fail-fast by default | [ADR-001](docs/adr/ADR-001-collect-all.md) |
+| i18n message resolver | Swap language without changing rules | [ADR-002](docs/adr/ADR-002-i18n.md) |
+| `final readonly` rules | PHPStan L9, thread safety | [ADR-003](docs/adr/ADR-003-immutable-rules.md) |
+| Cross-field context | Rules read sibling fields via ValidationContext | [ADR-004](docs/adr/ADR-004-cross-field.md) |
+| Validation groups | Run only relevant subset of rules | [ADR-005](docs/adr/ADR-005-groups.md) |
+
+### Specifications
+
+| Spec | Covers |
+|---|---|
+| [SPEC-001](docs/spec/SPEC-001-validation-contract.md) | Rule interface and error format |
+| [SPEC-002](docs/spec/SPEC-002-message-format.md) | Message template tokens |
+| [SPEC-003](docs/spec/SPEC-003-cross-field.md) | Cross-field validation protocol |
+
+---
+
+## Project Stats
 
 | Metric | Value |
-|--------|-------|
-| Source files | 77 |
+|---|---|
+| PHP source files | 77 |
 | Source lines | 4,203 |
 | Test files | 49 |
 | Test lines | 4,390 |
-| Total | **126 files / 8,593 lines** |
+| External runtime dependencies | 1 (kariricode/property-inspector) |
 | Rule classes | 57 (52 registered + 5 programmatic) |
 | Rule categories | 10 |
-| External dependencies | **0** |
+| i18n languages | 3 (EN, PT-BR, ES) |
+| PHPStan level | 9 |
+| PHP version | 8.4+ |
+| ARFA compliance | 1.3 |
+
+---
+
+## Contributing
+
+```bash
+git clone https://github.com/KaririCode-Framework/kariricode-validator.git
+cd kariricode-validator
+composer install
+kcode init
+kcode quality  # Must pass before opening a PR
+```
+
+---
 
 ## License
 
-MIT © Walmir Silva — KaririCode Framework
+[MIT License](LICENSE) © [Walmir Silva](mailto:community@kariricode.org)
+
+---
+
+<div align="center">
+
+Part of the **[KaririCode Framework](https://kariricode.org)** ecosystem.
+
+[kariricode.org](https://kariricode.org) · [GitHub](https://github.com/KaririCode-Framework/kariricode-validator) · [Packagist](https://packagist.org/packages/kariricode/validator) · [Issues](https://github.com/KaririCode-Framework/kariricode-validator/issues)
+
+</div>

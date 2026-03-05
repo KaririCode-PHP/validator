@@ -55,6 +55,8 @@ final class TypeRuleTest extends TestCase
         yield 'numeric invalid' => ['numeric', 'abc', false];
         yield 'scalar string' => ['scalar', 'hello', true];
         yield 'scalar array' => ['scalar', [], false];
+        yield 'callable valid' => ['callable', 'strlen', true];
+        yield 'callable invalid' => ['callable', 'not_a_function_xyz', false];
         yield 'unknown type' => ['unknown_type', 'hello', false];
     }
 
@@ -68,5 +70,10 @@ final class TypeRuleTest extends TestCase
     public function testErrorCode(): void
     {
         $this->assertSame('type.mismatch', $this->rule->getErrorCode());
+    }
+
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must be of type {type}.', $this->rule->getDefaultMessage());
     }
 }

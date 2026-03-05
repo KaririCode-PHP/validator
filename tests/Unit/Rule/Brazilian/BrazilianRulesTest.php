@@ -153,6 +153,49 @@ final class BrazilianRulesTest extends TestCase
         $this->assertFalse($rule->validate('', $this->ctx()));
     }
 
+    public function testCnpjNonStringReturnsFalse(): void
+    {
+        // Covers CnpjRule.validate() line 34: !is_string branch
+        $this->assertFalse((new CnpjRule())->validate(12345678000181, $this->ctx()));
+        $this->assertFalse((new CnpjRule())->validate(null, $this->ctx()));
+    }
+
+    public function testPisNonStringReturnsFalse(): void
+    {
+        // Covers PisRule.validate() line 27: !is_string branch
+        $this->assertFalse((new PisRule())->validate(12345678900, $this->ctx()));
+        $this->assertFalse((new PisRule())->validate(null, $this->ctx()));
+    }
+
+    public function testCpfWrongFirstCheckDigit(): void
+    {
+        // CPF 52998224735: digits[9]=3 but firstCheck=2 → L58 return false path
+        $this->assertFalse((new CpfRule())->validate('52998224735', $this->ctx()));
+    }
+
+    public function testCpfCheckDigitZero(): void
+    {
+        // 10000000108: firstCheck=0 (remainder===10), secondCheck=8
+        $this->assertFalse((new CpfRule())->validate('10000000100', $this->ctx())); // wrong second (should be 8)
+        $this->assertTrue((new CpfRule())->validate('10000000108', $this->ctx()));  // firstCheck=0 path
+        // 10000002810: r2=10 → secondCheck=0 path
+        $this->assertTrue((new CpfRule())->validate('10000002810', $this->ctx()));
+    }
+
+    public function testCnpjCheckDigitZero(): void
+    {
+        // 11000000000108: r1=0 → firstCheck=0 (< 2 path)
+        $this->assertTrue((new CnpjRule())->validate('11000000000108', $this->ctx()));
+        // 00011000000430: r2=1 → secondCheck=0 (< 2 path)
+        $this->assertTrue((new CnpjRule())->validate('00011000000430', $this->ctx()));
+    }
+
+    public function testPisCheckDigitZero(): void
+    {
+        // 10000000040: r=0 → check=0 (< 2 path)
+        $this->assertTrue((new PisRule())->validate('10000000040', $this->ctx()));
+    }
+
     // ── Error Codes ──
     public function testErrorCodes(): void
     {
@@ -160,5 +203,13 @@ final class BrazilianRulesTest extends TestCase
         $this->assertSame('brazilian.cnpj', (new CnpjRule())->getErrorCode());
         $this->assertSame('brazilian.cep', (new CepRule())->getErrorCode());
         $this->assertSame('brazilian.pis', (new PisRule())->getErrorCode());
+    }
+
+    public function testDefaultMessages(): void
+    {
+        $this->assertSame('The {field} is not a valid CPF.', (new CpfRule())->getDefaultMessage());
+        $this->assertSame('The {field} is not a valid CNPJ.', (new CnpjRule())->getDefaultMessage());
+        $this->assertSame('The {field} is not a valid CEP.', (new CepRule())->getDefaultMessage());
+        $this->assertSame('The {field} is not a valid PIS/PASEP.', (new PisRule())->getDefaultMessage());
     }
 }

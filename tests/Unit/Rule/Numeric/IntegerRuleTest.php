@@ -74,4 +74,9 @@ final class IntegerRuleTest extends TestCase
     {
         $this->assertSame('numeric.integer', $this->rule->getErrorCode());
     }
+
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must be an integer.', $this->rule->getDefaultMessage());
+    }
 }

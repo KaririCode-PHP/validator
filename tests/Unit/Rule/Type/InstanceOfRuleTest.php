@@ -56,6 +56,11 @@ final class InstanceOfRuleTest extends TestCase
         $this->assertSame('type.instance_of', $this->rule->getErrorCode());
     }
 
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must be an instance of {class}.', $this->rule->getDefaultMessage());
+    }
+
     private function ctx(string $class): ValidationContextImpl
     {
         return ValidationContextImpl::create([])

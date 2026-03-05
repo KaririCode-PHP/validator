@@ -86,6 +86,11 @@ final class DateFormatRuleTest extends TestCase
         $this->assertFalse($this->rule->validate('', $ctx));
     }
 
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must match the date format {format}.', $this->rule->getDefaultMessage());
+    }
+
     private function ctx(array $params): ValidationContextImpl
     {
         return ValidationContextImpl::create([])->withField('f')->withParameters($params);

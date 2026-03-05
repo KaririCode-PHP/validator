@@ -91,4 +91,27 @@ final class AttributeValidatorTest extends TestCase
         $this->assertFalse($result->isValid());
         $this->assertNotEmpty($result->errorsFor('password'));
     }
+
+    public function testValidateAttributeHandlerProcessingResults(): void
+    {
+        // Covers ValidateAttributeHandler::getProcessingResultMessages() and
+        // getProcessingResultErrors() — both are required by PropertyAttributeHandler
+        // interface and return empty arrays since the handler is stateless.
+        $handler = new ValidateAttributeHandler();
+        $this->assertSame([], $handler->getProcessingResultMessages());
+        $this->assertSame([], $handler->getProcessingResultErrors());
+    }
+
+    public function testHandleAttributeIgnoresUnknownAttributes(): void
+    {
+        // Covers ValidateAttributeHandler::handleAttribute() L49: the '!instanceof Validate' early return.
+        // When an attribute of unknown type is passed, handleAttribute returns null.
+        $handler = new ValidateAttributeHandler();
+        // Use a non-Validate, non-ValidationGroup attribute object
+        $unknownAttr = new \stdClass();
+        $result = $handler->handleAttribute('field', $unknownAttr, 'value');
+        $this->assertNull($result);
+        // Verify no rules were collected for that field
+        $this->assertEmpty($handler->getFieldRules());
+    }
 }

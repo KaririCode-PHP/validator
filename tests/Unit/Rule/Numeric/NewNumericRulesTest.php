@@ -71,4 +71,11 @@ final class NewNumericRulesTest extends TestCase
         $this->assertSame('numeric.negative_or_zero', (new NegativeOrZeroRule())->getErrorCode());
         $this->assertSame('numeric.decimal', (new DecimalRule())->getErrorCode());
     }
+
+    public function testDefaultMessages(): void
+    {
+        $this->assertSame('The {field} must be a negative number.', (new NegativeRule())->getDefaultMessage());
+        $this->assertSame('The {field} must be negative or zero.', (new NegativeOrZeroRule())->getDefaultMessage());
+        $this->assertSame('The {field} must be a decimal number with at most {places} decimal places.', (new DecimalRule())->getDefaultMessage());
+    }
 }

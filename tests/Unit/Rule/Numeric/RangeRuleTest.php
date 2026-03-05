@@ -101,6 +101,11 @@ final class RangeRuleTest extends TestCase
         $this->assertSame('numeric.range', $this->rule->getErrorCode());
     }
 
+    public function testDefaultMessage(): void
+    {
+        $this->assertSame('The {field} must be between {min} and {max}.', $this->rule->getDefaultMessage());
+    }
+
     private function ctx(array $params): ValidationContextImpl
     {
         return ValidationContextImpl::create([])->withField('f')->withParameters($params);

@@ -324,4 +324,16 @@ final class ValidatorEngineTest extends TestCase
 
         $this->assertNull($capturedGroup);
     }
+
+    public function testRuleObjectInArrayDefinition(): void
+    {
+        // Covers ValidatorEngine::resolveRule() L164: the ':$alias' branch where
+        // the first element is a ValidationRule object, not a string alias.
+        $inlineRule = new RequiredRule();
+        $result = $this->engine->validate(
+            ['name' => 'Alice'],
+            ['name' => [[$inlineRule, []]]],  // [[ruleObject, params]]
+        );
+        $this->assertTrue($result->isValid());
+    }
 }
