@@ -78,8 +78,7 @@ final readonly class ValidatorEngine
                 if ($hasError) {
                     ++$fieldErrorCount;
 
-                    \assert($this->configuration instanceof ValidatorConfiguration);
-                    if ($this->configuration->failFast) {
+                    if ($this->configuration instanceof ValidatorConfiguration && $this->configuration->failFast) {
                         break;
                     }
                 }
@@ -176,8 +175,7 @@ final readonly class ValidatorEngine
      */
     private function shouldStopField(int $fieldErrorCount): bool
     {
-        \assert($this->configuration instanceof ValidatorConfiguration);
-        $max = $this->configuration->maxErrorsPerField;
+        $max = $this->configuration instanceof ValidatorConfiguration ? $this->configuration->maxErrorsPerField : 0;
 
         return $max > 0 && $fieldErrorCount >= $max;
     }
