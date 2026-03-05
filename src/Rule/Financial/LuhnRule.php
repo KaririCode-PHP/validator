@@ -22,20 +22,21 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class LuhnRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value) && !is_int($value)) {
+        if (! \is_string($value) && ! \is_int($value)) {
             return false;
         }
 
         $digits = preg_replace('/[\s-]/', '', (string) $value);
 
-        if ($digits === null || $digits === '' || !ctype_digit($digits) || strlen($digits) < 8) {
+        if ($digits === null || $digits === '' || ! ctype_digit($digits) || \strlen($digits) < 8) {
             return false;
         }
 
         $sum = 0;
-        $length = strlen($digits);
+        $length = \strlen($digits);
         $parity = $length % 2;
 
         for ($i = 0; $i < $length; ++$i) {
@@ -54,11 +55,13 @@ final readonly class LuhnRule implements ValidationRule
         return $sum % 10 === 0;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'financial.luhn';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} is not a valid card number.';

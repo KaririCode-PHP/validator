@@ -23,15 +23,16 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class IbanRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         $iban = strtoupper(preg_replace('/\s+/', '', $value) ?? '');
 
-        if (!preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{4,30}$/', $iban)) {
+        if (! preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{4,30}$/', $iban)) {
             return false;
         }
 
@@ -40,15 +41,16 @@ final readonly class IbanRule implements ValidationRule
 
         // Convert letters to numbers (A=10, B=11, ..., Z=35)
         $numeric = '';
-        for ($i = 0, $len = strlen($rearranged); $i < $len; ++$i) {
+        for ($i = 0, $len = \strlen($rearranged); $i < $len; ++$i) {
             $char = $rearranged[$i];
             $numeric .= ctype_alpha($char)
-                ? (string) (ord($char) - 55)
+                ? (string) (\ord($char) - 55)
                 : $char;
         }
 
-        // MOD 97-10 check using bcmath or manual long division
-        if (function_exists('bcmod')) {
+        // MOD 97-10 check: $numeric is digit-only by construction
+        if (\function_exists('bcmod')) {
+            /** @psalm-suppress ArgumentTypeCoercion $numeric is always a numeric string */
             return bcmod($numeric, '97') === '1';
         }
 
@@ -61,7 +63,7 @@ final readonly class IbanRule implements ValidationRule
     {
         $remainder = 0;
 
-        for ($i = 0, $len = strlen($numeric); $i < $len; ++$i) {
+        for ($i = 0, $len = \strlen($numeric); $i < $len; ++$i) {
             $remainder = ($remainder * 10 + (int) $numeric[$i]) % 97;
         }
 
@@ -69,11 +71,13 @@ final readonly class IbanRule implements ValidationRule
     }
     // @codeCoverageIgnoreEnd
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'financial.iban';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} is not a valid IBAN.';

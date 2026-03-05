@@ -26,8 +26,8 @@ use KaririCode\Validator\Rule\Comparison\LessThanOrEqualRule;
 use KaririCode\Validator\Rule\Comparison\LessThanRule;
 use KaririCode\Validator\Rule\Comparison\NotEqualToRule;
 use KaririCode\Validator\Rule\CrossField\DifferentFromRule;
-use KaririCode\Validator\Rule\CrossField\RequiredWithRule;
 use KaririCode\Validator\Rule\CrossField\RequiredWithoutRule;
+use KaririCode\Validator\Rule\CrossField\RequiredWithRule;
 use KaririCode\Validator\Rule\CrossField\SameAsRule;
 use KaririCode\Validator\Rule\Date\DateAfterRule;
 use KaririCode\Validator\Rule\Date\DateBeforeRule;
@@ -38,6 +38,7 @@ use KaririCode\Validator\Rule\Financial\IbanRule;
 use KaririCode\Validator\Rule\Financial\LuhnRule;
 use KaririCode\Validator\Rule\Logic\ChoiceRule;
 use KaririCode\Validator\Rule\Logic\NotNullRule;
+use KaririCode\Validator\Rule\Logic\NullableRule;
 use KaririCode\Validator\Rule\Logic\RequiredRule;
 use KaririCode\Validator\Rule\Numeric\DecimalRule;
 use KaririCode\Validator\Rule\Numeric\IntegerRule;
@@ -45,8 +46,8 @@ use KaririCode\Validator\Rule\Numeric\NegativeOrZeroRule;
 use KaririCode\Validator\Rule\Numeric\NegativeRule;
 use KaririCode\Validator\Rule\Numeric\PositiveRule;
 use KaririCode\Validator\Rule\Numeric\RangeRule;
-use KaririCode\Validator\Rule\String\AlphaRule;
 use KaririCode\Validator\Rule\String\AlphanumericRule;
+use KaririCode\Validator\Rule\String\AlphaRule;
 use KaririCode\Validator\Rule\String\EmailRule;
 use KaririCode\Validator\Rule\String\EndsWithRule;
 use KaririCode\Validator\Rule\String\HostnameRule;
@@ -94,7 +95,7 @@ final class ValidatorServiceProvider
         $registry->register('required', new RequiredRule());
         $registry->register('choice', new ChoiceRule());
         $registry->register('not_null', new NotNullRule());
-        $registry->register('nullable', new \KaririCode\Validator\Rule\Logic\NullableRule());
+        $registry->register('nullable', new NullableRule());
 
         // ── String (15) ───────────────────────────────────────────────
         $registry->register('email', new EmailRule());
@@ -178,7 +179,7 @@ final class ValidatorServiceProvider
         return new ValidatorEngine(
             registry: $this->createRegistry(),
             messageResolver: $messageResolver ?? new DefaultMessageResolver(
-                $configuration?->defaultLocale ?? 'en',
+                ($configuration instanceof ValidatorConfiguration ? $configuration->defaultLocale : 'en'),
             ),
             configuration: $configuration,
         );

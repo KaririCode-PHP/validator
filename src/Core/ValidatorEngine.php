@@ -8,7 +8,6 @@ use KaririCode\Validator\Configuration\ValidatorConfiguration;
 use KaririCode\Validator\Contract\MessageResolver;
 use KaririCode\Validator\Contract\RuleRegistry;
 use KaririCode\Validator\Contract\ValidationRule;
-use KaririCode\Validator\Result\ValidationError;
 use KaririCode\Validator\Result\ValidationResult;
 
 /**
@@ -34,24 +33,18 @@ use KaririCode\Validator\Result\ValidationResult;
  * @author  Walmir Silva <walmir.silva@kariricode.org>
  * @since   3.1.0 ARFA 1.3
  */
-final class ValidatorEngine
+final readonly class ValidatorEngine
 {
-    private readonly ValidatorConfiguration $configuration;
-
-    public function __construct(
-        private readonly RuleRegistry $registry,
-        private readonly ?MessageResolver $messageResolver = null,
-        ?ValidatorConfiguration $configuration = null,
-    ) {
-        $this->configuration = $configuration ?? new ValidatorConfiguration();
+    public function __construct(private RuleRegistry $registry, private ?MessageResolver $messageResolver = null, private ?ValidatorConfiguration $configuration = new ValidatorConfiguration())
+    {
     }
 
     /**
      * Validates data against a field-rule definition map.
      *
-     * @param array<string, mixed>                              $data       Data to validate
-     * @param array<string, array<string|ValidationRule|array>> $fieldRules Map of field => rules
-     * @param string|null                                       $group      Validation group
+     * @param array<string, mixed>       $data       Data to validate
+     * @param array<string, list<mixed>> $fieldRules Map of field => rules
+     * @param string|null                $group      Validation group
      *
      * Rule format per field:
      * - string: alias name (e.g. 'required', 'email')
@@ -76,11 +69,16 @@ final class ValidatorEngine
                     break;
                 }
 
+                if (! \is_string($ruleDefinition) && ! $ruleDefinition instanceof ValidationRule && ! \is_array($ruleDefinition)) {
+                    continue;
+                }
+
                 $hasError = $this->applyRule($ruleDefinition, $value, $fieldContext, $field, $result);
 
                 if ($hasError) {
                     ++$fieldErrorCount;
 
+                    \assert($this->configuration instanceof ValidatorConfiguration);
                     if ($this->configuration->failFast) {
                         break;
                     }
@@ -94,13 +92,15 @@ final class ValidatorEngine
     /**
      * Returns the current configuration.
      */
-    public function getConfiguration(): ValidatorConfiguration
+    public function getConfiguration(): ValidatorConfiguration|null
     {
         return $this->configuration;
     }
 
     /**
      * Resolves a value from nested data using dot-notation.
+     *
+     * @param array<string, mixed> $data
      */
     private function resolveValue(array $data, string $field): mixed
     {
@@ -108,7 +108,7 @@ final class ValidatorEngine
         $current = $data;
 
         foreach ($keys as $key) {
-            if (!is_array($current) || !array_key_exists($key, $current)) {
+            if (! \is_array($current) || ! \array_key_exists($key, $current)) {
                 return null;
             }
             $current = $current[$key];
@@ -119,6 +119,8 @@ final class ValidatorEngine
 
     /**
      * Applies a single rule definition to a value. Returns true if error added.
+     *
+     * @param string|ValidationRule|array<mixed> $ruleDefinition
      */
     private function applyRule(
         string|ValidationRule|array $ruleDefinition,
@@ -130,7 +132,7 @@ final class ValidatorEngine
         [$rule, $parameters] = $this->resolveRuleDefinition($ruleDefinition);
         $parameterizedContext = $parameters !== [] ? $context->withParameters($parameters) : $context;
 
-        if (!$rule->validate($value, $parameterizedContext)) {
+        if (! $rule->validate($value, $parameterizedContext)) {
             $message = $this->resolveMessage($rule, $parameters, $field);
             $result->add($field, $rule->getErrorCode(), $message, $parameters);
 
@@ -143,6 +145,7 @@ final class ValidatorEngine
     /**
      * Resolves a rule definition into a ValidationRule + parameters.
      *
+     * @param string|ValidationRule|array<mixed> $definition
      * @return array{0: ValidationRule, 1: array<string, mixed>}
      */
     private function resolveRuleDefinition(string|ValidationRule|array $definition): array
@@ -151,19 +154,21 @@ final class ValidatorEngine
             return [$definition, []];
         }
 
-        if (is_string($definition)) {
+        if (\is_string($definition)) {
             return [$this->registry->resolve($definition), []];
         }
 
         // Array format: ['alias', ['min' => 3, 'max' => 255]]
         $alias = $definition[0];
-        $parameters = $definition[1] ?? [];
+        $params = isset($definition[1]) && \is_array($definition[1]) ? $definition[1] : [];
 
-        $rule = is_string($alias)
+        $rule = \is_string($alias)
             ? $this->registry->resolve($alias)
             : $alias;
 
-        return [$rule, $parameters];
+        \assert($rule instanceof ValidationRule);
+
+        return [$rule, $params];
     }
 
     /**
@@ -171,6 +176,7 @@ final class ValidatorEngine
      */
     private function shouldStopField(int $fieldErrorCount): bool
     {
+        \assert($this->configuration instanceof ValidatorConfiguration);
         $max = $this->configuration->maxErrorsPerField;
 
         return $max > 0 && $fieldErrorCount >= $max;
@@ -186,7 +192,7 @@ final class ValidatorEngine
         array $parameters,
         string $field,
     ): string {
-        if ($this->messageResolver !== null) {
+        if ($this->messageResolver instanceof MessageResolver) {
             return $this->messageResolver->resolve(
                 $rule->getErrorCode(),
                 array_merge($parameters, ['field' => $field]),
@@ -205,7 +211,7 @@ final class ValidatorEngine
     {
         $replacements = [];
         foreach ($parameters as $key => $value) {
-            if (is_scalar($value) || $value === null) {
+            if (\is_scalar($value) || $value === null) {
                 $replacements['{' . $key . '}'] = (string) ($value ?? '');
             }
         }

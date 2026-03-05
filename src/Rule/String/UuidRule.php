@@ -16,18 +16,21 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class UuidRule implements ValidationRule
 {
-    private const PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
+    private const string PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        return is_string($value) && preg_match(self::PATTERN, $value) === 1;
+        return \is_string($value) && preg_match(self::PATTERN, $value) === 1;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.uuid';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be a valid UUID.';

@@ -38,26 +38,31 @@ final readonly class ValidationContextImpl implements ValidationContextContract
     ) {
     }
 
+    #[\Override]
     public function getFieldName(): string
     {
         return $this->fieldName;
     }
 
+    #[\Override]
     public function getRootData(): array
     {
         return $this->rootData;
     }
 
+    #[\Override]
     public function getParameters(): array
     {
         return $this->parameters;
     }
 
+    #[\Override]
     public function getParameter(string $key, mixed $default = null): mixed
     {
         return $this->parameters[$key] ?? $default;
     }
 
+    #[\Override]
     public function getGroup(): ?string
     {
         return $this->group;
@@ -66,9 +71,10 @@ final readonly class ValidationContextImpl implements ValidationContextContract
     /**
      * Derives a new context for a different field.
      */
-    public function withField(string $fieldName): static
+    #[\Override]
+    public function withField(string $field): static
     {
-        return new self($fieldName, $this->rootData, $this->parameters, $this->group);
+        return new self($field, $this->rootData, $this->parameters, $this->group);
     }
 
     /**
@@ -76,6 +82,7 @@ final readonly class ValidationContextImpl implements ValidationContextContract
      *
      * @param array<string, mixed> $parameters
      */
+    #[\Override]
     public function withParameters(array $parameters): static
     {
         return new self($this->fieldName, $this->rootData, [...$this->parameters, ...$parameters], $this->group);

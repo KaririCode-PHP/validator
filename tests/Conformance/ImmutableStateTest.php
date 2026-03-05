@@ -7,7 +7,6 @@ namespace KaririCode\Validator\Tests\Conformance;
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Provider\ValidatorServiceProvider;
 use KaririCode\Validator\Result\ValidationError;
-use KaririCode\Validator\Result\ValidationResult;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -51,7 +50,7 @@ final class ImmutableStateTest extends TestCase
 
     public function testInputDataIsNotMutatedByEngine(): void
     {
-        $engine = (new ValidatorServiceProvider())->createEngine();
+        $engine = new ValidatorServiceProvider()->createEngine();
         $data = ['email' => 'user@test.com', 'name' => 'Test'];
         $snapshot = $data;
 

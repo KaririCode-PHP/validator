@@ -20,7 +20,7 @@ final class ValidatorEngineConfigTest extends TestCase
     public function testFailFastStopsOnFirstErrorPerField(): void
     {
         $config = new ValidatorConfiguration(failFast: true);
-        $engine = (new ValidatorServiceProvider())->createEngine($config);
+        $engine = new ValidatorServiceProvider()->createEngine($config);
 
         $result = $engine->validate(
             ['email' => ''],
@@ -35,7 +35,7 @@ final class ValidatorEngineConfigTest extends TestCase
     public function testMaxErrorsPerFieldLimitsCollection(): void
     {
         $config = new ValidatorConfiguration(maxErrorsPerField: 2);
-        $engine = (new ValidatorServiceProvider())->createEngine($config);
+        $engine = new ValidatorServiceProvider()->createEngine($config);
 
         $result = $engine->validate(
             ['email' => ''],
@@ -47,7 +47,7 @@ final class ValidatorEngineConfigTest extends TestCase
 
     public function testDefaultConfigCollectsAllErrors(): void
     {
-        $engine = (new ValidatorServiceProvider())->createEngine();
+        $engine = new ValidatorServiceProvider()->createEngine();
 
         $result = $engine->validate(
             ['email' => ''],
@@ -59,8 +59,8 @@ final class ValidatorEngineConfigTest extends TestCase
 
     public function testConfigurationAccessor(): void
     {
-        $config = new ValidatorConfiguration(failFast: true, defaultLocale: 'pt_BR');
-        $engine = (new ValidatorServiceProvider())->createEngine($config);
+        $config = new ValidatorConfiguration(defaultLocale: 'pt_BR', failFast: true);
+        $engine = new ValidatorServiceProvider()->createEngine($config);
 
         $this->assertTrue($engine->getConfiguration()->failFast);
         $this->assertSame('pt_BR', $engine->getConfiguration()->defaultLocale);

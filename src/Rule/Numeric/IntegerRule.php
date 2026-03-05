@@ -16,16 +16,19 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class IntegerRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
         return filter_var($value, FILTER_VALIDATE_INT) !== false;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'numeric.integer';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be an integer.';

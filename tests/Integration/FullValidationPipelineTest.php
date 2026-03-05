@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Tests\Integration;
 
+use KaririCode\Validator\Core\ValidatorEngine;
 use KaririCode\Validator\Exception\ValidationException;
 use KaririCode\Validator\Integration\ProcessorBridge;
 use KaririCode\Validator\Provider\ValidatorServiceProvider;
+use KaririCode\Validator\Rule\Logic\ConditionalRule;
+use KaririCode\Validator\Rule\Logic\RequiredRule;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,11 +17,11 @@ use PHPUnit\Framework\TestCase;
  */
 final class FullValidationPipelineTest extends TestCase
 {
-    private \KaririCode\Validator\Core\ValidatorEngine $engine;
+    private ValidatorEngine $engine;
 
     protected function setUp(): void
     {
-        $this->engine = (new ValidatorServiceProvider())->createEngine();
+        $this->engine = new ValidatorServiceProvider()->createEngine();
     }
 
     // ── User Registration Scenario ────────────────────────────────
@@ -210,14 +213,14 @@ final class FullValidationPipelineTest extends TestCase
 
     public function testConditionalBusinessValidation(): void
     {
-        $cnpjRequired = new \KaririCode\Validator\Rule\Logic\ConditionalRule(
-            condition: fn ($v, $ctx) => ($ctx->getRootData()['type'] ?? '') === 'business',
-            innerRule: new \KaririCode\Validator\Rule\Logic\RequiredRule(),
+        $cnpjRequired = new ConditionalRule(
+            condition: fn ($v, $ctx): bool => ($ctx->getRootData()['type'] ?? '') === 'business',
+            innerRule: new RequiredRule(),
         );
 
-        $registry = (new ValidatorServiceProvider())->createRegistry();
+        $registry = new ValidatorServiceProvider()->createRegistry();
         $registry->register('cnpj_required', $cnpjRequired);
-        $engine = new \KaririCode\Validator\Core\ValidatorEngine($registry);
+        $engine = new ValidatorEngine($registry);
 
         // Business without CNPJ → fails
         $result = $engine->validate(

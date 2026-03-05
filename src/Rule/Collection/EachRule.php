@@ -24,26 +24,23 @@ final readonly class EachRule implements ValidationRule
     ) {
     }
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_array($value)) {
+        if (! \is_array($value)) {
             return false;
         }
 
-        foreach ($value as $element) {
-            if (!$this->innerRule->validate($element, $context)) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($value, fn ($element): bool => $this->innerRule->validate($element, $context));
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'collection.each';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'Each item in {field} must be valid.';

@@ -162,44 +162,44 @@ final class CnpjAlphanumericRuleTest extends TestCase
     {
         return [
             // Legacy valid
-            'legacy_formatted_1'       => ['11.222.333/0001-81', true],
-            'legacy_formatted_2'       => ['12.345.678/0001-95', true],
-            'legacy_unformatted_1'     => ['11222333000181', true],
-            'legacy_unformatted_2'     => ['12345678000195', true],
+            'legacy_formatted_1' => ['11.222.333/0001-81', true],
+            'legacy_formatted_2' => ['12.345.678/0001-95', true],
+            'legacy_unformatted_1' => ['11222333000181', true],
+            'legacy_unformatted_2' => ['12345678000195', true],
             // Legacy invalid
-            'legacy_all_zeros'         => ['00000000000000', false],
-            'legacy_all_ones'          => ['11111111111111', false],
-            'legacy_wrong_dv'          => ['11222333000182', false],
-            'legacy_too_short'         => ['1122233300018', false],
+            'legacy_all_zeros' => ['00000000000000', false],
+            'legacy_all_ones' => ['11111111111111', false],
+            'legacy_wrong_dv' => ['11222333000182', false],
+            'legacy_too_short' => ['1122233300018', false],
             // Alphanumeric valid
-            'alpha_AB3DE6GHJK0041'     => ['AB3DE6GHJK0041', true],
-            'alpha_AA000000000108'     => ['AA000000000108', true],
-            'alpha_12ABC345000188'     => ['12ABC345000188', true],
-            'alpha_formatted'          => ['AB.3DE.6GH/JK00-41', true],
+            'alpha_AB3DE6GHJK0041' => ['AB3DE6GHJK0041', true],
+            'alpha_AA000000000108' => ['AA000000000108', true],
+            'alpha_12ABC345000188' => ['12ABC345000188', true],
+            'alpha_formatted' => ['AB.3DE.6GH/JK00-41', true],
             // Alphanumeric invalid
-            'alpha_forbidden_I'        => ['IB3DE6GHJK0041', false],
-            'alpha_forbidden_O'        => ['OB3DE6GHJK0041', false],
-            'alpha_forbidden_Q'        => ['QB3DE6GHJK0041', false],
+            'alpha_forbidden_I' => ['IB3DE6GHJK0041', false],
+            'alpha_forbidden_O' => ['OB3DE6GHJK0041', false],
+            'alpha_forbidden_Q' => ['QB3DE6GHJK0041', false],
             'alpha_letter_check_digit' => ['AB3DE6GHJK00A1', false],
-            'alpha_wrong_dv'           => ['AB3DE6GHJK0099', false],
+            'alpha_wrong_dv' => ['AB3DE6GHJK0099', false],
         ];
     }
 
     #[DataProvider('cnpjProvider')]
     public function testCnpjValidation(string $cnpj, bool $expected): void
     {
-        $this->assertSame($expected, (new CnpjRule())->validate($cnpj, $this->ctx()));
+        $this->assertSame($expected, new CnpjRule()->validate($cnpj, $this->ctx()));
     }
 
     // ── Contract ─────────────────────────────────────────────────────────────
 
     public function testGetErrorCode(): void
     {
-        $this->assertSame('brazilian.cnpj', (new CnpjRule())->getErrorCode());
+        $this->assertSame('brazilian.cnpj', new CnpjRule()->getErrorCode());
     }
 
     public function testGetDefaultMessage(): void
     {
-        $this->assertSame('The {field} is not a valid CNPJ.', (new CnpjRule())->getDefaultMessage());
+        $this->assertSame('The {field} is not a valid CNPJ.', new CnpjRule()->getDefaultMessage());
     }
 }

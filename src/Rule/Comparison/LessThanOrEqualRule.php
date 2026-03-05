@@ -18,22 +18,25 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class LessThanOrEqualRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_numeric($value)) {
+        if (! is_numeric($value)) {
             return false;
         }
 
         $threshold = $context->getParameter('threshold');
 
-        return $threshold !== null && (float) $value <= (float) $threshold;
+        return $threshold !== null && (float) $value <= (float) (is_numeric($threshold) ? $threshold : 0);
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'comparison.less_than_or_equal';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be less than or equal to {threshold}.';

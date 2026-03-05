@@ -4,6 +4,73 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Tests\Conformance;
 
+use KaririCode\Validator\Attribute\Validate;
+use KaririCode\Validator\Attribute\ValidationGroup;
+use KaririCode\Validator\Configuration\ValidatorConfiguration;
+use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\AttributeValidator;
+use KaririCode\Validator\Core\ValidationContextImpl;
+use KaririCode\Validator\Event\ValidationCompletedEvent;
+use KaririCode\Validator\Event\ValidationStartedEvent;
+use KaririCode\Validator\Integration\ProcessorBridge;
+use KaririCode\Validator\Result\ValidationError;
+use KaririCode\Validator\Rule\Brazilian\CepRule;
+use KaririCode\Validator\Rule\Brazilian\CnpjRule;
+use KaririCode\Validator\Rule\Brazilian\CpfRule;
+use KaririCode\Validator\Rule\Brazilian\PisRule;
+use KaririCode\Validator\Rule\Collection\CountRule;
+use KaririCode\Validator\Rule\Collection\EachRule;
+use KaririCode\Validator\Rule\Collection\KeyExistsRule;
+use KaririCode\Validator\Rule\Collection\UniqueElementsRule;
+use KaririCode\Validator\Rule\Comparison\BetweenRule;
+use KaririCode\Validator\Rule\Comparison\EqualToRule;
+use KaririCode\Validator\Rule\Comparison\GreaterThanOrEqualRule;
+use KaririCode\Validator\Rule\Comparison\GreaterThanRule;
+use KaririCode\Validator\Rule\Comparison\LessThanOrEqualRule;
+use KaririCode\Validator\Rule\Comparison\LessThanRule;
+use KaririCode\Validator\Rule\Comparison\NotEqualToRule;
+use KaririCode\Validator\Rule\CrossField\DifferentFromRule;
+use KaririCode\Validator\Rule\CrossField\RequiredWithoutRule;
+use KaririCode\Validator\Rule\CrossField\RequiredWithRule;
+use KaririCode\Validator\Rule\CrossField\SameAsRule;
+use KaririCode\Validator\Rule\Date\DateAfterRule;
+use KaririCode\Validator\Rule\Date\DateBeforeRule;
+use KaririCode\Validator\Rule\Date\DateBetweenRule;
+use KaririCode\Validator\Rule\Date\DateFormatRule;
+use KaririCode\Validator\Rule\Financial\BicRule;
+use KaririCode\Validator\Rule\Financial\IbanRule;
+use KaririCode\Validator\Rule\Financial\LuhnRule;
+use KaririCode\Validator\Rule\Logic\AtLeastOneOfRule;
+use KaririCode\Validator\Rule\Logic\CallbackRule;
+use KaririCode\Validator\Rule\Logic\ChoiceRule;
+use KaririCode\Validator\Rule\Logic\CompositeRule;
+use KaririCode\Validator\Rule\Logic\ConditionalRule;
+use KaririCode\Validator\Rule\Logic\NotNullRule;
+use KaririCode\Validator\Rule\Logic\NullableRule;
+use KaririCode\Validator\Rule\Logic\RequiredRule;
+use KaririCode\Validator\Rule\Numeric\DecimalRule;
+use KaririCode\Validator\Rule\Numeric\IntegerRule;
+use KaririCode\Validator\Rule\Numeric\NegativeOrZeroRule;
+use KaririCode\Validator\Rule\Numeric\NegativeRule;
+use KaririCode\Validator\Rule\Numeric\PositiveRule;
+use KaririCode\Validator\Rule\Numeric\RangeRule;
+use KaririCode\Validator\Rule\String\AlphanumericRule;
+use KaririCode\Validator\Rule\String\AlphaRule;
+use KaririCode\Validator\Rule\String\EmailRule;
+use KaririCode\Validator\Rule\String\EndsWithRule;
+use KaririCode\Validator\Rule\String\HostnameRule;
+use KaririCode\Validator\Rule\String\IpRule;
+use KaririCode\Validator\Rule\String\JsonRule;
+use KaririCode\Validator\Rule\String\LengthRule;
+use KaririCode\Validator\Rule\String\NotEmptyRule;
+use KaririCode\Validator\Rule\String\PatternRule;
+use KaririCode\Validator\Rule\String\SlugRule;
+use KaririCode\Validator\Rule\String\StartsWithRule;
+use KaririCode\Validator\Rule\String\UlidRule;
+use KaririCode\Validator\Rule\String\UrlRule;
+use KaririCode\Validator\Rule\String\UuidRule;
+use KaririCode\Validator\Rule\Type\InstanceOfRule;
+use KaririCode\Validator\Rule\Type\TypeRule;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -21,15 +88,15 @@ final class ArchitecturalContractTest extends TestCase
     public static function readonlyClassProvider(): iterable
     {
         $readonlyClasses = [
-            \KaririCode\Validator\Result\ValidationError::class,
-            \KaririCode\Validator\Core\ValidationContextImpl::class,
-            \KaririCode\Validator\Event\ValidationStartedEvent::class,
-            \KaririCode\Validator\Event\ValidationCompletedEvent::class,
-            \KaririCode\Validator\Configuration\ValidatorConfiguration::class,
-            \KaririCode\Validator\Attribute\Validate::class,
-            \KaririCode\Validator\Attribute\ValidationGroup::class,
-            \KaririCode\Validator\Integration\ProcessorBridge::class,
-            \KaririCode\Validator\Core\AttributeValidator::class,
+            ValidationError::class,
+            ValidationContextImpl::class,
+            ValidationStartedEvent::class,
+            ValidationCompletedEvent::class,
+            ValidatorConfiguration::class,
+            Validate::class,
+            ValidationGroup::class,
+            ProcessorBridge::class,
+            AttributeValidator::class,
         ];
 
         foreach ($readonlyClasses as $class) {
@@ -60,72 +127,72 @@ final class ArchitecturalContractTest extends TestCase
     {
         $rules = [
             // String (15)
-            \KaririCode\Validator\Rule\String\EmailRule::class,
-            \KaririCode\Validator\Rule\String\UrlRule::class,
-            \KaririCode\Validator\Rule\String\LengthRule::class,
-            \KaririCode\Validator\Rule\String\PatternRule::class,
-            \KaririCode\Validator\Rule\String\NotEmptyRule::class,
-            \KaririCode\Validator\Rule\String\AlphaRule::class,
-            \KaririCode\Validator\Rule\String\AlphanumericRule::class,
-            \KaririCode\Validator\Rule\String\UuidRule::class,
-            \KaririCode\Validator\Rule\String\UlidRule::class,
-            \KaririCode\Validator\Rule\String\IpRule::class,
-            \KaririCode\Validator\Rule\String\JsonRule::class,
-            \KaririCode\Validator\Rule\String\HostnameRule::class,
-            \KaririCode\Validator\Rule\String\SlugRule::class,
-            \KaririCode\Validator\Rule\String\StartsWithRule::class,
-            \KaririCode\Validator\Rule\String\EndsWithRule::class,
+            EmailRule::class,
+            UrlRule::class,
+            LengthRule::class,
+            PatternRule::class,
+            NotEmptyRule::class,
+            AlphaRule::class,
+            AlphanumericRule::class,
+            UuidRule::class,
+            UlidRule::class,
+            IpRule::class,
+            JsonRule::class,
+            HostnameRule::class,
+            SlugRule::class,
+            StartsWithRule::class,
+            EndsWithRule::class,
             // Numeric (6)
-            \KaririCode\Validator\Rule\Numeric\RangeRule::class,
-            \KaririCode\Validator\Rule\Numeric\PositiveRule::class,
-            \KaririCode\Validator\Rule\Numeric\IntegerRule::class,
-            \KaririCode\Validator\Rule\Numeric\NegativeRule::class,
-            \KaririCode\Validator\Rule\Numeric\NegativeOrZeroRule::class,
-            \KaririCode\Validator\Rule\Numeric\DecimalRule::class,
+            RangeRule::class,
+            PositiveRule::class,
+            IntegerRule::class,
+            NegativeRule::class,
+            NegativeOrZeroRule::class,
+            DecimalRule::class,
             // Comparison (7)
-            \KaririCode\Validator\Rule\Comparison\EqualToRule::class,
-            \KaririCode\Validator\Rule\Comparison\NotEqualToRule::class,
-            \KaririCode\Validator\Rule\Comparison\GreaterThanRule::class,
-            \KaririCode\Validator\Rule\Comparison\GreaterThanOrEqualRule::class,
-            \KaririCode\Validator\Rule\Comparison\LessThanRule::class,
-            \KaririCode\Validator\Rule\Comparison\LessThanOrEqualRule::class,
-            \KaririCode\Validator\Rule\Comparison\BetweenRule::class,
+            EqualToRule::class,
+            NotEqualToRule::class,
+            GreaterThanRule::class,
+            GreaterThanOrEqualRule::class,
+            LessThanRule::class,
+            LessThanOrEqualRule::class,
+            BetweenRule::class,
             // Date (4)
-            \KaririCode\Validator\Rule\Date\DateFormatRule::class,
-            \KaririCode\Validator\Rule\Date\DateBeforeRule::class,
-            \KaririCode\Validator\Rule\Date\DateAfterRule::class,
-            \KaririCode\Validator\Rule\Date\DateBetweenRule::class,
+            DateFormatRule::class,
+            DateBeforeRule::class,
+            DateAfterRule::class,
+            DateBetweenRule::class,
             // Type (2)
-            \KaririCode\Validator\Rule\Type\TypeRule::class,
-            \KaririCode\Validator\Rule\Type\InstanceOfRule::class,
+            TypeRule::class,
+            InstanceOfRule::class,
             // Logic (8)
-            \KaririCode\Validator\Rule\Logic\RequiredRule::class,
-            \KaririCode\Validator\Rule\Logic\ChoiceRule::class,
-            \KaririCode\Validator\Rule\Logic\CompositeRule::class,
-            \KaririCode\Validator\Rule\Logic\ConditionalRule::class,
-            \KaririCode\Validator\Rule\Logic\NullableRule::class,
-            \KaririCode\Validator\Rule\Logic\NotNullRule::class,
-            \KaririCode\Validator\Rule\Logic\CallbackRule::class,
-            \KaririCode\Validator\Rule\Logic\AtLeastOneOfRule::class,
+            RequiredRule::class,
+            ChoiceRule::class,
+            CompositeRule::class,
+            ConditionalRule::class,
+            NullableRule::class,
+            NotNullRule::class,
+            CallbackRule::class,
+            AtLeastOneOfRule::class,
             // Collection (4)
-            \KaririCode\Validator\Rule\Collection\CountRule::class,
-            \KaririCode\Validator\Rule\Collection\UniqueElementsRule::class,
-            \KaririCode\Validator\Rule\Collection\KeyExistsRule::class,
-            \KaririCode\Validator\Rule\Collection\EachRule::class,
+            CountRule::class,
+            UniqueElementsRule::class,
+            KeyExistsRule::class,
+            EachRule::class,
             // CrossField (4)
-            \KaririCode\Validator\Rule\CrossField\SameAsRule::class,
-            \KaririCode\Validator\Rule\CrossField\DifferentFromRule::class,
-            \KaririCode\Validator\Rule\CrossField\RequiredWithRule::class,
-            \KaririCode\Validator\Rule\CrossField\RequiredWithoutRule::class,
+            SameAsRule::class,
+            DifferentFromRule::class,
+            RequiredWithRule::class,
+            RequiredWithoutRule::class,
             // Financial (3)
-            \KaririCode\Validator\Rule\Financial\LuhnRule::class,
-            \KaririCode\Validator\Rule\Financial\IbanRule::class,
-            \KaririCode\Validator\Rule\Financial\BicRule::class,
+            LuhnRule::class,
+            IbanRule::class,
+            BicRule::class,
             // Brazilian (4)
-            \KaririCode\Validator\Rule\Brazilian\CpfRule::class,
-            \KaririCode\Validator\Rule\Brazilian\CnpjRule::class,
-            \KaririCode\Validator\Rule\Brazilian\CepRule::class,
-            \KaririCode\Validator\Rule\Brazilian\PisRule::class,
+            CpfRule::class,
+            CnpjRule::class,
+            CepRule::class,
+            PisRule::class,
         ];
 
         foreach ($rules as $class) {
@@ -138,7 +205,7 @@ final class ArchitecturalContractTest extends TestCase
     {
         $ref = new \ReflectionClass($class);
         $this->assertTrue(
-            $ref->implementsInterface(\KaririCode\Validator\Contract\ValidationRule::class),
+            $ref->implementsInterface(ValidationRule::class),
             "{$class} must implement ValidationRule contract.",
         );
     }
@@ -153,13 +220,13 @@ final class ArchitecturalContractTest extends TestCase
 
     public function testNoToArrayAntipatternOnValueObjects(): void
     {
-        $ref = new \ReflectionClass(\KaririCode\Validator\Result\ValidationError::class);
+        $ref = new \ReflectionClass(ValidationError::class);
         $this->assertFalse($ref->hasMethod('toArray'), 'toArray antipattern detected.');
     }
 
     public function testNoFromArrayAntipatternOnValueObjects(): void
     {
-        $ref = new \ReflectionClass(\KaririCode\Validator\Result\ValidationError::class);
+        $ref = new \ReflectionClass(ValidationError::class);
         $this->assertFalse($ref->hasMethod('fromArray'), 'fromArray antipattern detected.');
     }
 

@@ -19,23 +19,27 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class DateFormatRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
-        $format = (string) $context->getParameter('format', 'Y-m-d');
+        $format = $context->getParameter('format', 'Y-m-d');
+        $format = \is_string($format) ? $format : 'Y-m-d';
         $date = \DateTimeImmutable::createFromFormat($format, $value);
 
         return $date !== false && $date->format($format) === $value;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'date.format';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must match the date format {format}.';

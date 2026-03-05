@@ -16,6 +16,7 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class ChoiceRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
         /** @var array<mixed> $choices */
@@ -25,14 +26,16 @@ final readonly class ChoiceRule implements ValidationRule
             return true;
         }
 
-        return in_array($value, $choices, strict: true);
+        return \in_array($value, $choices, strict: true);
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'logic.choice';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} value is not a valid choice.';

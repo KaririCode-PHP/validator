@@ -16,7 +16,7 @@ final class ConditionalRuleTest extends TestCase
     public function testAppliesRuleWhenConditionMet(): void
     {
         $rule = new ConditionalRule(
-            condition: fn ($v, $ctx) => $ctx->getRootData()['type'] === 'business',
+            condition: fn ($v, $ctx): bool => $ctx->getRootData()['type'] === 'business',
             innerRule: new RequiredRule(),
         );
 
@@ -28,7 +28,7 @@ final class ConditionalRuleTest extends TestCase
     public function testSkipsRuleWhenConditionNotMet(): void
     {
         $rule = new ConditionalRule(
-            condition: fn ($v, $ctx) => $ctx->getRootData()['type'] === 'business',
+            condition: fn ($v, $ctx): bool => $ctx->getRootData()['type'] === 'business',
             innerRule: new RequiredRule(),
         );
 
@@ -40,7 +40,7 @@ final class ConditionalRuleTest extends TestCase
     public function testDelegatesErrorCodeToInnerRule(): void
     {
         $rule = new ConditionalRule(
-            condition: fn () => true,
+            condition: fn (): true => true,
             innerRule: new RequiredRule(),
         );
 
@@ -50,7 +50,7 @@ final class ConditionalRuleTest extends TestCase
     public function testDelegatesMessageToInnerRule(): void
     {
         $rule = new ConditionalRule(
-            condition: fn () => true,
+            condition: fn (): true => true,
             innerRule: new RequiredRule(),
         );
 
@@ -60,7 +60,7 @@ final class ConditionalRuleTest extends TestCase
     public function testConditionMetAndInnerPasses(): void
     {
         $rule = new ConditionalRule(
-            condition: fn ($v, $ctx) => $ctx->getRootData()['type'] === 'business',
+            condition: fn ($v, $ctx): bool => $ctx->getRootData()['type'] === 'business',
             innerRule: new RequiredRule(),
         );
 

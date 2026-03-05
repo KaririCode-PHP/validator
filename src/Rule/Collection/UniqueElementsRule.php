@@ -18,25 +18,28 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class UniqueElementsRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_array($value)) {
+        if (! \is_array($value)) {
             return false;
         }
 
         $serialized = array_map(
-            static fn (mixed $item): string => serialize($item),
+            serialize(...),
             $value,
         );
 
-        return count($serialized) === count(array_unique($serialized));
+        return \count($serialized) === \count(array_unique($serialized));
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'collection.unique';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must contain only unique values.';

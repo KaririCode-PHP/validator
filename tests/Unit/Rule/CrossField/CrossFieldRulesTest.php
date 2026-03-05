@@ -6,8 +6,8 @@ namespace KaririCode\Validator\Tests\Unit\Rule\CrossField;
 
 use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\CrossField\DifferentFromRule;
-use KaririCode\Validator\Rule\CrossField\RequiredWithRule;
 use KaririCode\Validator\Rule\CrossField\RequiredWithoutRule;
+use KaririCode\Validator\Rule\CrossField\RequiredWithRule;
 use KaririCode\Validator\Rule\CrossField\SameAsRule;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -125,10 +125,10 @@ final class CrossFieldRulesTest extends TestCase
     // ── Error codes ──
     public function testErrorCodes(): void
     {
-        $this->assertSame('crossfield.same_as', (new SameAsRule())->getErrorCode());
-        $this->assertSame('crossfield.different_from', (new DifferentFromRule())->getErrorCode());
-        $this->assertSame('crossfield.required_with', (new RequiredWithRule())->getErrorCode());
-        $this->assertSame('crossfield.required_without', (new RequiredWithoutRule())->getErrorCode());
+        $this->assertSame('crossfield.same_as', new SameAsRule()->getErrorCode());
+        $this->assertSame('crossfield.different_from', new DifferentFromRule()->getErrorCode());
+        $this->assertSame('crossfield.required_with', new RequiredWithRule()->getErrorCode());
+        $this->assertSame('crossfield.required_without', new RequiredWithoutRule()->getErrorCode());
     }
 
     public function testRequiredWithEmptyArrayValues(): void
@@ -150,9 +150,9 @@ final class CrossFieldRulesTest extends TestCase
 
     public function testDefaultMessages(): void
     {
-        $this->assertSame('The {field} must match {other}.', (new SameAsRule())->getDefaultMessage());
-        $this->assertSame('The {field} must differ from {other}.', (new DifferentFromRule())->getDefaultMessage());
-        $this->assertSame('The {field} is required when {other} is present.', (new RequiredWithRule())->getDefaultMessage());
-        $this->assertSame('The {field} is required when {other} is absent.', (new RequiredWithoutRule())->getDefaultMessage());
+        $this->assertSame('The {field} must match {other}.', new SameAsRule()->getDefaultMessage());
+        $this->assertSame('The {field} must differ from {other}.', new DifferentFromRule()->getDefaultMessage());
+        $this->assertSame('The {field} is required when {other} is present.', new RequiredWithRule()->getDefaultMessage());
+        $this->assertSame('The {field} is required when {other} is absent.', new RequiredWithoutRule()->getDefaultMessage());
     }
 }

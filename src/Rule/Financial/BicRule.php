@@ -19,22 +19,25 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class BicRule implements ValidationRule
 {
-    private const PATTERN = '/^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/';
+    private const string PATTERN = '/^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/';
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         return preg_match(self::PATTERN, strtoupper(trim($value))) === 1;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'financial.bic';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} is not a valid BIC/SWIFT code.';

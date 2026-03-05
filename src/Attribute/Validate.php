@@ -34,11 +34,11 @@ namespace KaririCode\Validator\Attribute;
 #[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::IS_REPEATABLE)]
 final readonly class Validate
 {
-    /** @var array<string|array> */
+    /** @var array<array-key, string|array<mixed>> */
     public array $rules;
 
     /**
-     * @param string|array ...$rules Rule aliases or [alias, params] tuples
+     * @param string|array<mixed> ...$rules Rule aliases or [alias, params] tuples
      */
     public function __construct(string|array ...$rules)
     {

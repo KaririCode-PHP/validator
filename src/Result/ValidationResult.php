@@ -141,6 +141,6 @@ final class ValidationResult
      */
     public function errorCount(): int
     {
-        return count($this->errors);
+        return \count($this->errors);
     }
 }

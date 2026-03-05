@@ -16,9 +16,10 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class JsonRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
@@ -27,11 +28,13 @@ final readonly class JsonRule implements ValidationRule
         return json_last_error() === JSON_ERROR_NONE;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.json';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be valid JSON.';

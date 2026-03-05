@@ -36,40 +36,41 @@ final readonly class CnpjRule implements ValidationRule
      * Characters forbidden in the alphanumeric CNPJ body (positions 1–12).
      * I, O, Q cause visual ambiguity; excluded per official spec.
      */
-    private const FORBIDDEN = ['I', 'O', 'Q'];
+    private const array FORBIDDEN = ['I', 'O', 'Q'];
 
     /** Weights for the first check digit calculation. */
-    private const WEIGHTS_1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    private const array WEIGHTS_1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 
     /** Weights for the second check digit calculation. */
-    private const WEIGHTS_2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    private const array WEIGHTS_2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         // Strip formatting characters: dots, slashes, hyphens
         $cnpj = preg_replace('/[.\-\/]/', '', strtoupper($value));
 
-        if ($cnpj === null || strlen($cnpj) !== 14) {
+        if ($cnpj === null || \strlen($cnpj) !== 14) {
             return false;
         }
 
         // Check digits (positions 13–14) must always be numeric
-        if (!ctype_digit(substr($cnpj, 12, 2))) {
+        if (! ctype_digit(substr($cnpj, 12, 2))) {
             return false;
         }
 
         // Body (positions 1–12) must be digits or A–Z, without forbidden chars
         $body = substr($cnpj, 0, 12);
-        if (!$this->isValidBody($body)) {
+        if (! $this->isValidBody($body)) {
             return false;
         }
 
         // Reject uniform sequences (all same character), e.g. "000000000000"
-        if (strlen(count_chars($body, 3)) === 1 && $body[0] === $cnpj[12] && $body[0] === $cnpj[13]) {
+        if (\strlen(count_chars($body, 3)) === 1 && $body[0] === $cnpj[12] && $body[0] === $cnpj[13]) {
             return false;
         }
 
@@ -85,11 +86,13 @@ final readonly class CnpjRule implements ValidationRule
         return (int) $cnpj[13] === $secondCheck;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'brazilian.cnpj';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} is not a valid CNPJ.';
@@ -104,13 +107,14 @@ final readonly class CnpjRule implements ValidationRule
     {
         for ($i = 0; $i < 12; ++$i) {
             $c = $body[$i];
-            if (!ctype_alnum($c)) {
+            if (! ctype_alnum($c)) {
                 return false;
             }
-            if (in_array($c, self::FORBIDDEN, true)) {
+            if (\in_array($c, self::FORBIDDEN, true)) {
                 return false;
             }
         }
+
         return true;
     }
 
@@ -121,17 +125,22 @@ final readonly class CnpjRule implements ValidationRule
      */
     private function charNumericValue(string $c): int
     {
-        return ctype_alpha($c) ? ord($c) - 48 : (int) $c;
+        return ctype_alpha($c) ? \ord($c) - 48 : (int) $c;
     }
 
     /**
      * Computes a single Módulo 11 check digit from an input string and weights.
+     *
+     * @param array<int, int> $weights Weight multipliers
      * Returns 0 when remainder < 2, otherwise 11 - remainder.
+     */
+    /**
+     * @param array<int, int> $weights
      */
     private function computeCheckDigit(string $input, array $weights): int
     {
         $sum = 0;
-        $len = strlen($input);
+        $len = \strlen($input);
 
         for ($i = 0; $i < $len; ++$i) {
             $sum += $this->charNumericValue($input[$i]) * $weights[$i];

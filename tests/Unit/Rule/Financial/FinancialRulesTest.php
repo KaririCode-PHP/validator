@@ -83,7 +83,6 @@ final class FinancialRulesTest extends TestCase
         // This is the chunked-modulo fallback for systems without bcmath.
         $rule = new IbanRule();
         $reflect = new \ReflectionMethod(IbanRule::class, 'mod97');
-        $reflect->setAccessible(true);
 
         // GB29NWBK60161331926819 rearranged and letter-encoded:
         // NWBK60161331926819GB29 -> 2332112060161331926819161129
@@ -98,15 +97,15 @@ final class FinancialRulesTest extends TestCase
 
     public function testErrorCodes(): void
     {
-        $this->assertSame('financial.luhn', (new LuhnRule())->getErrorCode());
-        $this->assertSame('financial.iban', (new IbanRule())->getErrorCode());
-        $this->assertSame('financial.bic', (new BicRule())->getErrorCode());
+        $this->assertSame('financial.luhn', new LuhnRule()->getErrorCode());
+        $this->assertSame('financial.iban', new IbanRule()->getErrorCode());
+        $this->assertSame('financial.bic', new BicRule()->getErrorCode());
     }
 
     public function testDefaultMessages(): void
     {
-        $this->assertSame('The {field} is not a valid card number.', (new LuhnRule())->getDefaultMessage());
-        $this->assertSame('The {field} is not a valid IBAN.', (new IbanRule())->getDefaultMessage());
-        $this->assertSame('The {field} is not a valid BIC/SWIFT code.', (new BicRule())->getDefaultMessage());
+        $this->assertSame('The {field} is not a valid card number.', new LuhnRule()->getDefaultMessage());
+        $this->assertSame('The {field} is not a valid IBAN.', new IbanRule()->getDefaultMessage());
+        $this->assertSame('The {field} is not a valid BIC/SWIFT code.', new BicRule()->getDefaultMessage());
     }
 }

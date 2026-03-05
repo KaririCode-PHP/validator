@@ -18,16 +18,19 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class AlphaRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        return is_string($value) && $value !== '' && preg_match('/^\pL+$/u', $value) === 1;
+        return \is_string($value) && $value !== '' && preg_match('/^\pL+$/u', $value) === 1;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.alpha';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must contain only letters.';

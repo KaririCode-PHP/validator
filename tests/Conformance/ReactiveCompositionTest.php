@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Tests\Conformance;
 
+use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Provider\ValidatorServiceProvider;
-use KaririCode\Validator\Result\ValidationResult;
 use KaririCode\Validator\Rule\Logic\CompositeRule;
 use KaririCode\Validator\Rule\Logic\RequiredRule;
 use KaririCode\Validator\Rule\String\EmailRule;
@@ -21,7 +21,7 @@ final class ReactiveCompositionTest extends TestCase
 {
     public function testRulesComposeViaEnginePipeline(): void
     {
-        $engine = (new ValidatorServiceProvider())->createEngine();
+        $engine = new ValidatorServiceProvider()->createEngine();
 
         $result = $engine->validate(
             ['email' => 'user@example.com'],
@@ -41,7 +41,7 @@ final class ReactiveCompositionTest extends TestCase
             new LengthRule(),
         );
 
-        $ctx = \KaririCode\Validator\Core\ValidationContextImpl::create([])
+        $ctx = ValidationContextImpl::create([])
             ->withField('email')
             ->withParameters(['max' => 255]);
 
@@ -51,7 +51,7 @@ final class ReactiveCompositionTest extends TestCase
 
     public function testResultMergeComposesMultipleValidations(): void
     {
-        $engine = (new ValidatorServiceProvider())->createEngine();
+        $engine = new ValidatorServiceProvider()->createEngine();
 
         $profileResult = $engine->validate(
             ['name' => ''],

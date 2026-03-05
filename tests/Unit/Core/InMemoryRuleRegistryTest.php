@@ -88,7 +88,7 @@ final class InMemoryRuleRegistryTest extends TestCase
 
     private function createStubRule(): ValidationRule
     {
-        return new class implements ValidationRule {
+        return new class () implements ValidationRule {
             public function validate(mixed $value, ValidationContext $context): bool
             {
                 return true;

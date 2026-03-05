@@ -30,20 +30,23 @@ final readonly class ConditionalRule implements ValidationRule
     ) {
     }
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!($this->condition)($value, $context)) {
+        if (! ($this->condition)($value, $context)) {
             return true; // Condition not met — skip validation
         }
 
         return $this->innerRule->validate($value, $context);
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return $this->innerRule->getErrorCode();
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return $this->innerRule->getDefaultMessage();

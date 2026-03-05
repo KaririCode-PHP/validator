@@ -18,7 +18,7 @@ final class AttributeValidatorTest extends TestCase
 {
     public function testValidatesObjectFromAttributes(): void
     {
-        $validator = (new ValidatorServiceProvider())->createAttributeValidator();
+        $validator = new ValidatorServiceProvider()->createAttributeValidator();
         $dto = new class ('invalid', 'ab') {
             public function __construct(
                 #[Validate('required', 'email')]
@@ -37,7 +37,7 @@ final class AttributeValidatorTest extends TestCase
 
     public function testValidObjectPassesValidation(): void
     {
-        $validator = (new ValidatorServiceProvider())->createAttributeValidator();
+        $validator = new ValidatorServiceProvider()->createAttributeValidator();
         $dto = new class ('user@test.com', 'securepassword') {
             public function __construct(
                 #[Validate('required', 'email')]
@@ -54,7 +54,7 @@ final class AttributeValidatorTest extends TestCase
 
     public function testGroupFilteringSkipsNonMatchingProperties(): void
     {
-        $validator = (new ValidatorServiceProvider())->createAttributeValidator();
+        $validator = new ValidatorServiceProvider()->createAttributeValidator();
         $dto = new class ('user@test.com', '') {
             public function __construct(
                 #[Validate('required', 'email')]
@@ -74,7 +74,7 @@ final class AttributeValidatorTest extends TestCase
 
     public function testCreateGroupValidatesBothFields(): void
     {
-        $validator = (new ValidatorServiceProvider())->createAttributeValidator();
+        $validator = new ValidatorServiceProvider()->createAttributeValidator();
         $dto = new class ('user@test.com', '') {
             public function __construct(
                 #[Validate('required', 'email')]

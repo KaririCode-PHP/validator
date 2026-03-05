@@ -29,15 +29,21 @@ final class DefaultMessageResolver implements MessageResolver
         private readonly string $defaultLocale = 'en',
         ?array $messages = null,
     ) {
-        $this->messages = $messages ?? self::builtInMessages();
+        $this->messages = $messages ?? $this->builtInMessages();
     }
 
+    /**
+     * @param string               $errorCode  The error code to resolve
+     * @param array<string, mixed> $parameters Token replacements for message interpolation
+     * @param string|null          $locale     Locale override (falls back to default)
+     */
+    #[\Override]
     public function resolve(
         string $errorCode,
         array $parameters = [],
         ?string $locale = null,
     ): string {
-        $locale = $locale ?? $this->defaultLocale;
+        $locale ??= $this->defaultLocale;
         $message = $this->messages[$locale][$errorCode]
             ?? $this->messages['en'][$errorCode]
             ?? "Validation failed for {$errorCode}.";
@@ -65,11 +71,14 @@ final class DefaultMessageResolver implements MessageResolver
         }
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     private function interpolate(string $message, array $parameters): string
     {
         $replacements = [];
         foreach ($parameters as $key => $value) {
-            if (is_scalar($value) || $value === null) {
+            if (\is_scalar($value) || $value === null) {
                 $replacements['{' . $key . '}'] = (string) ($value ?? '');
             }
         }
@@ -80,7 +89,7 @@ final class DefaultMessageResolver implements MessageResolver
     /**
      * @return array<string, array<string, string>>
      */
-    private static function builtInMessages(): array
+    private function builtInMessages(): array
     {
         return [
             'en' => [

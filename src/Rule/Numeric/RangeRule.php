@@ -19,9 +19,10 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class RangeRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_numeric($value)) {
+        if (! is_numeric($value)) {
             return false;
         }
 
@@ -29,22 +30,24 @@ final readonly class RangeRule implements ValidationRule
         $min = $context->getParameter('min');
         $max = $context->getParameter('max');
 
-        if ($min !== null && $numericValue < (float) $min) {
+        if ($min !== null && is_numeric($min) && $numericValue < (float) $min) {
             return false;
         }
 
-        if ($max !== null && $numericValue > (float) $max) {
+        if ($max !== null && is_numeric($max) && $numericValue > (float) $max) {
             return false;
         }
 
         return true;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'numeric.range';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be between {min} and {max}.';

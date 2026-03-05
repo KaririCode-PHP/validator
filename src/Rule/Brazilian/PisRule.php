@@ -21,15 +21,16 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class PisRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         $digits = preg_replace('/\D/', '', $value);
 
-        if ($digits === null || strlen($digits) !== 11) {
+        if ($digits === null || \strlen($digits) !== 11) {
             return false;
         }
 
@@ -51,11 +52,13 @@ final readonly class PisRule implements ValidationRule
         return (int) $digits[10] === $check;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'brazilian.pis';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} is not a valid PIS/PASEP.';

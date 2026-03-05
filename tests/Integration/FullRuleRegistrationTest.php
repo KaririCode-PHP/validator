@@ -48,12 +48,12 @@ final class FullRuleRegistrationTest extends TestCase
             $this->assertTrue($registry->has($alias), "Missing alias: {$alias}");
         }
 
-        $this->assertCount(count($expected), $registry->aliases());
+        $this->assertCount(\count($expected), $registry->aliases());
     }
 
     public function testEngineValidatesWithAllRuleCategories(): void
     {
-        $engine = (new ValidatorServiceProvider())->createEngine();
+        $engine = new ValidatorServiceProvider()->createEngine();
 
         $result = $engine->validate([
             'name' => 'Walmir',
@@ -74,7 +74,7 @@ final class FullRuleRegistrationTest extends TestCase
 
     public function testCrossFieldValidation(): void
     {
-        $engine = (new ValidatorServiceProvider())->createEngine();
+        $engine = new ValidatorServiceProvider()->createEngine();
 
         $result = $engine->validate([
             'password' => 'secret123',
@@ -98,7 +98,7 @@ final class FullRuleRegistrationTest extends TestCase
 
     public function testFinancialValidation(): void
     {
-        $engine = (new ValidatorServiceProvider())->createEngine();
+        $engine = new ValidatorServiceProvider()->createEngine();
 
         $result = $engine->validate([
             'card' => '4532015112830366',
@@ -115,7 +115,7 @@ final class FullRuleRegistrationTest extends TestCase
 
     public function testBrazilianValidation(): void
     {
-        $engine = (new ValidatorServiceProvider())->createEngine();
+        $engine = new ValidatorServiceProvider()->createEngine();
 
         $result = $engine->validate([
             'cpf' => '529.982.247-25',
@@ -134,7 +134,7 @@ final class FullRuleRegistrationTest extends TestCase
 
     public function testComparisonRulesIntegration(): void
     {
-        $engine = (new ValidatorServiceProvider())->createEngine();
+        $engine = new ValidatorServiceProvider()->createEngine();
 
         $result = $engine->validate(
             ['score' => 85],
@@ -149,7 +149,7 @@ final class FullRuleRegistrationTest extends TestCase
 
     public function testDateRangeIntegration(): void
     {
-        $engine = (new ValidatorServiceProvider())->createEngine();
+        $engine = new ValidatorServiceProvider()->createEngine();
 
         $result = $engine->validate(
             ['event_date' => '2025-06-15'],

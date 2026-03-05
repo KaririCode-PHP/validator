@@ -19,28 +19,27 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class RequiredRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
         if ($value === null) {
             return false;
         }
 
-        if (is_string($value) && trim($value) === '') {
+        if (\is_string($value) && trim($value) === '') {
             return false;
         }
 
-        if (is_array($value) && $value === []) {
-            return false;
-        }
-
-        return true;
+        return ! (\is_array($value) && $value === []);
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'logic.required';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} field is required.';

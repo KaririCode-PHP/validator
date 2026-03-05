@@ -33,6 +33,7 @@ final class NewStringRulesTest extends TestCase
     private function ctx(array $params = []): ValidationContextImpl
     {
         $ctx = ValidationContextImpl::create([])->withField('test');
+
         return $params !== [] ? $ctx->withParameters($params) : $ctx;
     }
 
@@ -171,42 +172,42 @@ final class NewStringRulesTest extends TestCase
 
     public function testIpNonStringReturnsFalse(): void
     {
-        $this->assertFalse((new IpRule())->validate(42, $this->ctx()));
-        $this->assertFalse((new IpRule())->validate(null, $this->ctx()));
+        $this->assertFalse(new IpRule()->validate(42, $this->ctx()));
+        $this->assertFalse(new IpRule()->validate(null, $this->ctx()));
     }
 
     public function testJsonNonStringReturnsFalse(): void
     {
-        $this->assertFalse((new JsonRule())->validate(42, $this->ctx()));
-        $this->assertFalse((new JsonRule())->validate(null, $this->ctx()));
-        $this->assertFalse((new JsonRule())->validate([], $this->ctx()));
+        $this->assertFalse(new JsonRule()->validate(42, $this->ctx()));
+        $this->assertFalse(new JsonRule()->validate(null, $this->ctx()));
+        $this->assertFalse(new JsonRule()->validate([], $this->ctx()));
     }
 
     public function testErrorCodes(): void
     {
-        $this->assertSame('string.alpha', (new AlphaRule())->getErrorCode());
-        $this->assertSame('string.alphanumeric', (new AlphanumericRule())->getErrorCode());
-        $this->assertSame('string.uuid', (new UuidRule())->getErrorCode());
-        $this->assertSame('string.ulid', (new UlidRule())->getErrorCode());
-        $this->assertSame('string.ip', (new IpRule())->getErrorCode());
-        $this->assertSame('string.json', (new JsonRule())->getErrorCode());
-        $this->assertSame('string.hostname', (new HostnameRule())->getErrorCode());
-        $this->assertSame('string.slug', (new SlugRule())->getErrorCode());
-        $this->assertSame('string.starts_with', (new StartsWithRule())->getErrorCode());
-        $this->assertSame('string.ends_with', (new EndsWithRule())->getErrorCode());
+        $this->assertSame('string.alpha', new AlphaRule()->getErrorCode());
+        $this->assertSame('string.alphanumeric', new AlphanumericRule()->getErrorCode());
+        $this->assertSame('string.uuid', new UuidRule()->getErrorCode());
+        $this->assertSame('string.ulid', new UlidRule()->getErrorCode());
+        $this->assertSame('string.ip', new IpRule()->getErrorCode());
+        $this->assertSame('string.json', new JsonRule()->getErrorCode());
+        $this->assertSame('string.hostname', new HostnameRule()->getErrorCode());
+        $this->assertSame('string.slug', new SlugRule()->getErrorCode());
+        $this->assertSame('string.starts_with', new StartsWithRule()->getErrorCode());
+        $this->assertSame('string.ends_with', new EndsWithRule()->getErrorCode());
     }
 
     public function testDefaultMessages(): void
     {
-        $this->assertSame('The {field} must contain only letters.', (new AlphaRule())->getDefaultMessage());
-        $this->assertSame('The {field} must contain only letters and numbers.', (new AlphanumericRule())->getDefaultMessage());
-        $this->assertSame('The {field} must be a valid UUID.', (new UuidRule())->getDefaultMessage());
-        $this->assertSame('The {field} must be a valid ULID.', (new UlidRule())->getDefaultMessage());
-        $this->assertSame('The {field} must be a valid IP address.', (new IpRule())->getDefaultMessage());
-        $this->assertSame('The {field} must be valid JSON.', (new JsonRule())->getDefaultMessage());
-        $this->assertSame('The {field} must be a valid hostname.', (new HostnameRule())->getDefaultMessage());
-        $this->assertSame('The {field} must be a valid URL slug.', (new SlugRule())->getDefaultMessage());
-        $this->assertSame('The {field} must start with {prefix}.', (new StartsWithRule())->getDefaultMessage());
-        $this->assertSame('The {field} must end with {suffix}.', (new EndsWithRule())->getDefaultMessage());
+        $this->assertSame('The {field} must contain only letters.', new AlphaRule()->getDefaultMessage());
+        $this->assertSame('The {field} must contain only letters and numbers.', new AlphanumericRule()->getDefaultMessage());
+        $this->assertSame('The {field} must be a valid UUID.', new UuidRule()->getDefaultMessage());
+        $this->assertSame('The {field} must be a valid ULID.', new UlidRule()->getDefaultMessage());
+        $this->assertSame('The {field} must be a valid IP address.', new IpRule()->getDefaultMessage());
+        $this->assertSame('The {field} must be valid JSON.', new JsonRule()->getDefaultMessage());
+        $this->assertSame('The {field} must be a valid hostname.', new HostnameRule()->getDefaultMessage());
+        $this->assertSame('The {field} must be a valid URL slug.', new SlugRule()->getDefaultMessage());
+        $this->assertSame('The {field} must start with {prefix}.', new StartsWithRule()->getDefaultMessage());
+        $this->assertSame('The {field} must end with {suffix}.', new EndsWithRule()->getDefaultMessage());
     }
 }

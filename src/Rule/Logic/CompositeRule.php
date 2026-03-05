@@ -30,22 +30,19 @@ final readonly class CompositeRule implements ValidationRule
         $this->rules = $rules;
     }
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        foreach ($this->rules as $rule) {
-            if (!$rule->validate($value, $context)) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($this->rules, fn ($rule) => $rule->validate($value, $context));
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return $this->errorCode;
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return $this->message;

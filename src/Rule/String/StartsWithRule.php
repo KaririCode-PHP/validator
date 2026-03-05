@@ -18,22 +18,25 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class StartsWithRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
-        $prefix = (string) $context->getParameter('prefix', '');
+        $prefix = ($context->getParameter('prefix', '') ?? '');
 
-        return str_starts_with($value, $prefix);
+        return \is_string($prefix) && str_starts_with($value, $prefix);
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.starts_with';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must start with {prefix}.';

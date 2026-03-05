@@ -18,18 +18,20 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class RequiredWithoutRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        $otherField = (string) $context->getParameter('other', '');
+        $otherParam = $context->getParameter('other', '');
+        $otherField = \is_string($otherParam) ? $otherParam : '';
         $rootData = $context->getRootData();
 
         // If other field present and non-empty, this rule doesn't apply
-        if (array_key_exists($otherField, $rootData) && !$this->isEmpty($rootData[$otherField])) {
+        if (\array_key_exists($otherField, $rootData) && ! $this->isEmpty($rootData[$otherField])) {
             return true;
         }
 
         // Other field absent — this field must be present
-        return !$this->isEmpty($value);
+        return ! $this->isEmpty($value);
     }
 
     private function isEmpty(mixed $value): bool
@@ -38,22 +40,20 @@ final readonly class RequiredWithoutRule implements ValidationRule
             return true;
         }
 
-        if (is_string($value) && trim($value) === '') {
+        if (\is_string($value) && trim($value) === '') {
             return true;
         }
 
-        if (is_array($value) && $value === []) {
-            return true;
-        }
-
-        return false;
+        return \is_array($value) && $value === [];
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'crossfield.required_without';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} is required when {other} is absent.';

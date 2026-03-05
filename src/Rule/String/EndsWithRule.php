@@ -18,22 +18,25 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class EndsWithRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
-        $suffix = (string) $context->getParameter('suffix', '');
+        $suffix = ($context->getParameter('suffix', '') ?? '');
 
-        return str_ends_with($value, $suffix);
+        return \is_string($suffix) && str_ends_with($value, $suffix);
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.ends_with';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must end with {suffix}.';

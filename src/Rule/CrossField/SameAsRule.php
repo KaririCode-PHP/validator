@@ -19,23 +19,26 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class SameAsRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        $otherField = (string) $context->getParameter('other', '');
+        $otherParam = $context->getParameter('other', '');
+        $otherField = \is_string($otherParam) ? $otherParam : '';
         $rootData = $context->getRootData();
-
-        if (!array_key_exists($otherField, $rootData)) {
+        if (! \array_key_exists($otherField, $rootData)) {
             return false;
         }
 
         return $value === $rootData[$otherField];
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'crossfield.same_as';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must match {other}.';

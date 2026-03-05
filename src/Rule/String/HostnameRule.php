@@ -16,22 +16,25 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class HostnameRule implements ValidationRule
 {
-    private const PATTERN = '/^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$/';
+    private const string PATTERN = '/^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$/';
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value) || $value === '' || mb_strlen($value) > 253) {
+        if (! \is_string($value) || $value === '' || mb_strlen($value) > 253) {
             return false;
         }
 
         return preg_match(self::PATTERN, $value) === 1;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.hostname';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be a valid hostname.';

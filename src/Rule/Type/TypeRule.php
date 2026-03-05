@@ -19,30 +19,34 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class TypeRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        $expectedType = (string) $context->getParameter('type', 'string');
+        $typeParam = $context->getParameter('type', 'string');
+        $expectedType = \is_string($typeParam) ? $typeParam : 'string';
 
         return match ($expectedType) {
-            'string' => is_string($value),
-            'int', 'integer' => is_int($value),
-            'float', 'double' => is_float($value),
-            'bool', 'boolean' => is_bool($value),
-            'array' => is_array($value),
-            'object' => is_object($value),
+            'string' => \is_string($value),
+            'int', 'integer' => \is_int($value),
+            'float', 'double' => \is_float($value),
+            'bool', 'boolean' => \is_bool($value),
+            'array' => \is_array($value),
+            'object' => \is_object($value),
             'null' => $value === null,
             'numeric' => is_numeric($value),
-            'scalar' => is_scalar($value),
-            'callable' => is_callable($value),
+            'scalar' => \is_scalar($value),
+            'callable' => \is_callable($value),
             default => false,
         };
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'type.mismatch';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be of type {type}.';

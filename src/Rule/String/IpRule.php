@@ -18,9 +18,10 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class IpRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
@@ -34,11 +35,13 @@ final readonly class IpRule implements ValidationRule
         return filter_var($value, FILTER_VALIDATE_IP, $flags) !== false;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.ip';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be a valid IP address.';

@@ -19,15 +19,16 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class CepRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         $digits = preg_replace('/\D/', '', $value);
 
-        if ($digits === null || strlen($digits) !== 8) {
+        if ($digits === null || \strlen($digits) !== 8) {
             return false;
         }
 
@@ -35,11 +36,13 @@ final readonly class CepRule implements ValidationRule
         return $digits !== '00000000';
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'brazilian.cep';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} is not a valid CEP.';

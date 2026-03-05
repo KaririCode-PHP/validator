@@ -1,6 +1,9 @@
 <?php
+
 declare(strict_types=1);
+
 namespace KaririCode\Validator\Rule\Logic;
+
 use KaririCode\Validator\Contract\{ValidationContext, ValidationRule};
 
 /**
@@ -29,11 +32,21 @@ final readonly class CallbackRule implements ValidationRule
     ) {
     }
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
         return ($this->callback)($value, $context);
     }
 
-    public function getErrorCode(): string { return $this->errorCode; }
-    public function getDefaultMessage(): string { return $this->message; }
+    #[\Override]
+    public function getErrorCode(): string
+    {
+        return $this->errorCode;
+    }
+
+    #[\Override]
+    public function getDefaultMessage(): string
+    {
+        return $this->message;
+    }
 }

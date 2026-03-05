@@ -19,32 +19,36 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class LengthRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         $length = mb_strlen($value, 'UTF-8');
-        $min = (int) $context->getParameter('min', 0);
+        $minParam = $context->getParameter('min', 0);
+        $min = is_numeric($minParam) ? (int) $minParam : 0;
         $max = $context->getParameter('max');
 
         if ($length < $min) {
             return false;
         }
 
-        if ($max !== null && $length > (int) $max) {
+        if ($max !== null && $length > (int) (is_numeric($max) ? $max : 0)) {
             return false;
         }
 
         return true;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.length';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be between {min} and {max} characters.';

@@ -1,6 +1,9 @@
 <?php
+
 declare(strict_types=1);
+
 namespace KaririCode\Validator\Rule\Logic;
+
 use KaririCode\Validator\Contract\{ValidationContext, ValidationRule};
 
 /**
@@ -14,11 +17,21 @@ use KaririCode\Validator\Contract\{ValidationContext, ValidationRule};
  */
 final readonly class NotNullRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
         return $value !== null;
     }
 
-    public function getErrorCode(): string { return 'logic.not_null'; }
-    public function getDefaultMessage(): string { return 'The {field} must not be null.'; }
+    #[\Override]
+    public function getErrorCode(): string
+    {
+        return 'logic.not_null';
+    }
+
+    #[\Override]
+    public function getDefaultMessage(): string
+    {
+        return 'The {field} must not be null.';
+    }
 }

@@ -9,6 +9,7 @@ use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
 use KaririCode\Validator\Core\InMemoryRuleRegistry;
 use KaririCode\Validator\Core\ValidatorEngine;
+use KaririCode\Validator\Exception\InvalidRuleException;
 use KaririCode\Validator\Rule\Logic\RequiredRule;
 use KaririCode\Validator\Rule\String\EmailRule;
 use KaririCode\Validator\Rule\String\LengthRule;
@@ -200,7 +201,7 @@ final class ValidatorEngineTest extends TestCase
 
     public function testCustomMessageResolver(): void
     {
-        $resolver = new class implements MessageResolver {
+        $resolver = new class () implements MessageResolver {
             public function resolve(string $errorCode, array $parameters = [], ?string $locale = null): string
             {
                 return "Custom: {$errorCode}";
@@ -222,7 +223,7 @@ final class ValidatorEngineTest extends TestCase
     public function testGroupPassedToContext(): void
     {
         $capturedGroup = null;
-        $capturingRule = new class($capturedGroup) implements ValidationRule {
+        $capturingRule = new class ($capturedGroup) implements ValidationRule {
             private mixed $ref;
 
             public function __construct(mixed &$ref)
@@ -233,6 +234,7 @@ final class ValidatorEngineTest extends TestCase
             public function validate(mixed $value, ValidationContext $context): bool
             {
                 $this->ref = $context->getGroup();
+
                 return true;
             }
 
@@ -262,7 +264,7 @@ final class ValidatorEngineTest extends TestCase
 
     public function testUnknownAliasThrowsInvalidRuleException(): void
     {
-        $this->expectException(\KaririCode\Validator\Exception\InvalidRuleException::class);
+        $this->expectException(InvalidRuleException::class);
 
         $this->engine->validate(
             ['f' => 'v'],
@@ -290,7 +292,7 @@ final class ValidatorEngineTest extends TestCase
     public function testDefaultGroupIsNull(): void
     {
         $capturedGroup = 'sentinel';
-        $capturingRule = new class($capturedGroup) implements ValidationRule {
+        $capturingRule = new class ($capturedGroup) implements ValidationRule {
             private mixed $ref;
 
             public function __construct(mixed &$ref)
@@ -301,6 +303,7 @@ final class ValidatorEngineTest extends TestCase
             public function validate(mixed $value, ValidationContext $context): bool
             {
                 $this->ref = $context->getGroup();
+
                 return true;
             }
 
@@ -333,6 +336,18 @@ final class ValidatorEngineTest extends TestCase
         $result = $this->engine->validate(
             ['name' => 'Alice'],
             ['name' => [[$inlineRule, []]]],  // [[ruleObject, params]]
+        );
+        $this->assertTrue($result->isValid());
+    }
+
+    public function testInvalidRuleTypeIsSkipped(): void
+    {
+        // Covers ValidatorEngine::validate() L72: the type-guard `continue`
+        // when $ruleDefinition is not string, ValidationRule, or array.
+        // An integer definition is silently skipped — field remains valid.
+        $result = $this->engine->validate(
+            ['name' => 'Alice'],
+            ['name' => [42]], // 42 is not a valid rule definition type
         );
         $this->assertTrue($result->isValid());
     }

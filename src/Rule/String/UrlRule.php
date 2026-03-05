@@ -16,20 +16,23 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class UrlRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         return filter_var($value, FILTER_VALIDATE_URL) !== false;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.url';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be a valid URL.';

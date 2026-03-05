@@ -18,26 +18,29 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class PatternRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         $pattern = $context->getParameter('pattern', '');
 
-        if ($pattern === '' || $pattern === null) {
+        if (! \is_string($pattern) || $pattern === '') {
             return true;
         }
 
-        return preg_match((string) $pattern, $value) === 1;
+        return preg_match($pattern, $value) === 1;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.pattern';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} format is invalid.';

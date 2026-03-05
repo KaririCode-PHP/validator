@@ -16,16 +16,19 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class PositiveRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
         return is_numeric($value) && (float) $value > 0;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'numeric.positive';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be a positive number.';

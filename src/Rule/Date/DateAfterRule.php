@@ -18,13 +18,15 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class DateAfterRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
-        $format = (string) $context->getParameter('format', 'Y-m-d');
+        $format = $context->getParameter('format', 'Y-m-d');
+        $format = \is_string($format) ? $format : 'Y-m-d';
         $afterStr = $context->getParameter('after');
 
         if ($afterStr === null) {
@@ -32,7 +34,10 @@ final readonly class DateAfterRule implements ValidationRule
         }
 
         $date = \DateTimeImmutable::createFromFormat($format, $value);
-        $after = \DateTimeImmutable::createFromFormat($format, (string) $afterStr);
+        if (! \is_string($afterStr)) {
+            return false;
+        }
+        $after = \DateTimeImmutable::createFromFormat($format, $afterStr);
 
         if ($date === false || $after === false) {
             return false;
@@ -41,11 +46,13 @@ final readonly class DateAfterRule implements ValidationRule
         return $date > $after;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'date.after';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be a date after {after}.';

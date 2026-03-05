@@ -29,9 +29,9 @@ use KaririCode\Validator\Result\ValidationResult;
 final readonly class ProcessorBridge
 {
     /**
-     * @param ValidatorEngine                                       $engine    Validator engine
-     * @param array<string, array<string|array>>                    $fieldRules Field-rule map
-     * @param bool                                                  $throwOnFailure Throw ValidationException on failure
+     * @param ValidatorEngine        $engine         Validator engine instance
+     * @param array<string, list<mixed>> $fieldRules  Field-to-rules map
+     * @param bool                   $throwOnFailure  Throw on validation failure
      */
     public function __construct(
         private ValidatorEngine $engine,
@@ -53,7 +53,7 @@ final readonly class ProcessorBridge
     {
         $result = $this->engine->validate($data, $this->fieldRules);
 
-        if (!$result->isValid() && $this->throwOnFailure) {
+        if (! $result->isValid() && $this->throwOnFailure) {
             throw ValidationException::fromResult($result);
         }
 

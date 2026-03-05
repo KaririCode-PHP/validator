@@ -23,20 +23,23 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class EmailRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.email';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be a valid email address.';

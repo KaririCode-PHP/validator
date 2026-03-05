@@ -1,6 +1,9 @@
 <?php
+
 declare(strict_types=1);
+
 namespace KaririCode\Validator\Rule\Logic;
+
 use KaririCode\Validator\Contract\{ValidationContext, ValidationRule};
 
 /**
@@ -20,16 +23,21 @@ final readonly class AtLeastOneOfRule implements ValidationRule
         $this->rules = $rules;
     }
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        foreach ($this->rules as $rule) {
-            if ($rule->validate($value, $context)) {
-                return true;
-            }
-        }
-        return false;
+        return array_any($this->rules, fn ($rule) => $rule->validate($value, $context));
     }
 
-    public function getErrorCode(): string { return 'logic.at_least_one_of'; }
-    public function getDefaultMessage(): string { return 'The {field} must pass at least one validation rule.'; }
+    #[\Override]
+    public function getErrorCode(): string
+    {
+        return 'logic.at_least_one_of';
+    }
+
+    #[\Override]
+    public function getDefaultMessage(): string
+    {
+        return 'The {field} must pass at least one validation rule.';
+    }
 }

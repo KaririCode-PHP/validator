@@ -18,16 +18,19 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class NotEqualToRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
         return $value !== $context->getParameter('expected');
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'comparison.not_equal_to';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must not be equal to {expected}.';

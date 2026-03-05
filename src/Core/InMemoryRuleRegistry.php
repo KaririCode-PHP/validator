@@ -27,6 +27,7 @@ final class InMemoryRuleRegistry implements RuleRegistry
     /** @var array<string, ValidationRule> */
     private array $rules = [];
 
+    #[\Override]
     public function register(string $alias, ValidationRule $rule): void
     {
         if (isset($this->rules[$alias])) {
@@ -36,17 +37,20 @@ final class InMemoryRuleRegistry implements RuleRegistry
         $this->rules[$alias] = $rule;
     }
 
+    #[\Override]
     public function resolve(string $alias): ValidationRule
     {
         return $this->rules[$alias]
             ?? throw InvalidRuleException::unknownAlias($alias);
     }
 
+    #[\Override]
     public function has(string $alias): bool
     {
         return isset($this->rules[$alias]);
     }
 
+    #[\Override]
     public function aliases(): array
     {
         return array_keys($this->rules);

@@ -18,9 +18,10 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class KeyExistsRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_array($value)) {
+        if (! \is_array($value)) {
             return false;
         }
 
@@ -30,14 +31,20 @@ final readonly class KeyExistsRule implements ValidationRule
             return false;
         }
 
-        return array_key_exists((string) $key, $value);
+        if (! \is_string($key) && ! \is_int($key)) {
+            return false;
+        }
+
+        return \array_key_exists($key, $value);
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'collection.key_exists';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must contain the key {key}.';

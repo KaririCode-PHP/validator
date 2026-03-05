@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Tests\Conformance;
 
+use KaririCode\Validator\Core\ValidatorEngine;
 use KaririCode\Validator\Provider\ValidatorServiceProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -17,12 +18,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class ProtocolAgnosticTest extends TestCase
 {
-    private \KaririCode\Validator\Core\ValidatorEngine $engine;
+    private ValidatorEngine $engine;
     private array $rules;
 
     protected function setUp(): void
     {
-        $this->engine = (new ValidatorServiceProvider())->createEngine();
+        $this->engine = new ValidatorServiceProvider()->createEngine();
         $this->rules = [
             'email' => ['required', 'email'],
             'name' => ['required', ['length', ['min' => 2, 'max' => 100]]],

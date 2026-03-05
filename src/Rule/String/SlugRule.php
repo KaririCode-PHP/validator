@@ -16,18 +16,21 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class SlugRule implements ValidationRule
 {
-    private const PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
+    private const string PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        return is_string($value) && preg_match(self::PATTERN, $value) === 1;
+        return \is_string($value) && preg_match(self::PATTERN, $value) === 1;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.slug';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be a valid URL slug.';

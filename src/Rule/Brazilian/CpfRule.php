@@ -24,25 +24,26 @@ use KaririCode\Validator\Contract\ValidationRule;
 final readonly class CpfRule implements ValidationRule
 {
     /** Known-invalid sequences where all digits are the same. */
-    private const BLACKLIST = [
+    private const array BLACKLIST = [
         '00000000000', '11111111111', '22222222222', '33333333333',
         '44444444444', '55555555555', '66666666666', '77777777777',
         '88888888888', '99999999999',
     ];
 
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         $digits = preg_replace('/\D/', '', $value);
 
-        if ($digits === null || strlen($digits) !== 11) {
+        if ($digits === null || \strlen($digits) !== 11) {
             return false;
         }
 
-        if (in_array($digits, self::BLACKLIST, true)) {
+        if (\in_array($digits, self::BLACKLIST, true)) {
             return false;
         }
 
@@ -69,11 +70,13 @@ final readonly class CpfRule implements ValidationRule
         return (int) $digits[10] === $secondCheck;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'brazilian.cpf';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} is not a valid CPF.';

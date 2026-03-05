@@ -28,7 +28,7 @@ final class ValidationResultTest extends TestCase
     public function testIsInvalidAfterAddError(): void
     {
         $this->result->addError(
-            new ValidationError('email', 'string.email', 'Invalid.')
+            new ValidationError('email', 'string.email', 'Invalid.'),
         );
 
         $this->assertFalse($this->result->isValid());

@@ -18,13 +18,15 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class DateBeforeRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
-        $format = (string) $context->getParameter('format', 'Y-m-d');
+        $format = $context->getParameter('format', 'Y-m-d');
+        $format = \is_string($format) ? $format : 'Y-m-d';
         $beforeStr = $context->getParameter('before');
 
         if ($beforeStr === null) {
@@ -32,7 +34,7 @@ final readonly class DateBeforeRule implements ValidationRule
         }
 
         $date = \DateTimeImmutable::createFromFormat($format, $value);
-        $before = \DateTimeImmutable::createFromFormat($format, (string) $beforeStr);
+        $before = (\is_string($beforeStr) ? \DateTimeImmutable::createFromFormat($format, $beforeStr) : false);
 
         if ($date === false || $before === false) {
             return false;
@@ -41,11 +43,13 @@ final readonly class DateBeforeRule implements ValidationRule
         return $date < $before;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'date.before';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be a date before {before}.';

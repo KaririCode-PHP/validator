@@ -16,16 +16,19 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class NegativeOrZeroRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
         return is_numeric($value) && (float) $value <= 0;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'numeric.negative_or_zero';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be negative or zero.';

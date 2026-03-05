@@ -18,32 +18,36 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class CountRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_array($value) && !$value instanceof \Countable) {
+        if (! \is_array($value) && ! $value instanceof \Countable) {
             return false;
         }
 
-        $count = count($value);
-        $min = (int) $context->getParameter('min', 0);
-        $max = $context->getParameter('max');
+        $count = \count($value);
+        $minParam = $context->getParameter('min', 0);
+        $min = is_numeric($minParam) ? (int) $minParam : 0;
+        $maxParam = $context->getParameter('max');
 
         if ($count < $min) {
             return false;
         }
 
-        if ($max !== null && $count > (int) $max) {
+        if ($maxParam !== null && is_numeric($maxParam) && $count > (int) $maxParam) {
             return false;
         }
 
         return true;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'collection.count';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must contain between {min} and {max} items.';

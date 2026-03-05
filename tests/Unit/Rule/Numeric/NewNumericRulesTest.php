@@ -19,6 +19,7 @@ final class NewNumericRulesTest extends TestCase
     private function ctx(array $params = []): ValidationContextImpl
     {
         $ctx = ValidationContextImpl::create([])->withField('test');
+
         return $params !== [] ? $ctx->withParameters($params) : $ctx;
     }
 
@@ -62,20 +63,20 @@ final class NewNumericRulesTest extends TestCase
 
     public function testDecimalRejectsNonNumeric(): void
     {
-        $this->assertFalse((new DecimalRule())->validate('abc', $this->ctx()));
+        $this->assertFalse(new DecimalRule()->validate('abc', $this->ctx()));
     }
 
     public function testErrorCodes(): void
     {
-        $this->assertSame('numeric.negative', (new NegativeRule())->getErrorCode());
-        $this->assertSame('numeric.negative_or_zero', (new NegativeOrZeroRule())->getErrorCode());
-        $this->assertSame('numeric.decimal', (new DecimalRule())->getErrorCode());
+        $this->assertSame('numeric.negative', new NegativeRule()->getErrorCode());
+        $this->assertSame('numeric.negative_or_zero', new NegativeOrZeroRule()->getErrorCode());
+        $this->assertSame('numeric.decimal', new DecimalRule()->getErrorCode());
     }
 
     public function testDefaultMessages(): void
     {
-        $this->assertSame('The {field} must be a negative number.', (new NegativeRule())->getDefaultMessage());
-        $this->assertSame('The {field} must be negative or zero.', (new NegativeOrZeroRule())->getDefaultMessage());
-        $this->assertSame('The {field} must be a decimal number with at most {places} decimal places.', (new DecimalRule())->getDefaultMessage());
+        $this->assertSame('The {field} must be a negative number.', new NegativeRule()->getDefaultMessage());
+        $this->assertSame('The {field} must be negative or zero.', new NegativeOrZeroRule()->getDefaultMessage());
+        $this->assertSame('The {field} must be a decimal number with at most {places} decimal places.', new DecimalRule()->getDefaultMessage());
     }
 }

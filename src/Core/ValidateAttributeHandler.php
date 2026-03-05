@@ -24,10 +24,12 @@ final class ValidateAttributeHandler implements PropertyAttributeHandler
     /** @var array<string, list<mixed>> */
     private array $fieldRules = [];
 
-    /** Tracks which properties have had their group check processed. */
+    /** @var array<string, bool> Tracks which properties have had their group check processed. */
     private array $groupChecked = [];
 
-    public function __construct(private readonly ?string $group = null) {}
+    public function __construct(private readonly ?string $group = null)
+    {
+    }
 
     #[\Override]
     public function handleAttribute(string $propertyName, object $attribute, mixed $value): mixed
@@ -36,29 +38,30 @@ final class ValidateAttributeHandler implements PropertyAttributeHandler
         if ($attribute instanceof ValidationGroup) {
             if ($this->group !== null) {
                 // If property is not in the requested group, mark it to be skipped
-                if (!in_array($this->group, $attribute->groups, strict: true)) {
+                if (! \in_array($this->group, $attribute->groups, strict: true)) {
                     $this->groupChecked[$propertyName] = false;
                 } else {
                     $this->groupChecked[$propertyName] ??= true;
                 }
             }
+
             return null;
         }
 
-        if (!$attribute instanceof Validate) {
+        if (! $attribute instanceof Validate) {
             return null;
         }
 
         $this->data[$propertyName] = $value;
 
-        if (!isset($this->fieldRules[$propertyName])) {
+        if (! isset($this->fieldRules[$propertyName])) {
             $this->fieldRules[$propertyName] = [];
         }
 
-        $this->fieldRules[$propertyName] = [
+        $this->fieldRules[$propertyName] = array_values([
             ...$this->fieldRules[$propertyName],
             ...$attribute->rules,
-        ];
+        ]);
 
         return null;
     }
@@ -100,7 +103,7 @@ final class ValidateAttributeHandler implements PropertyAttributeHandler
 
         return array_filter(
             $map,
-            fn(string $property) => $this->groupChecked[$property] ?? true,
+            fn (string $property) => $this->groupChecked[$property] ?? true,
             ARRAY_FILTER_USE_KEY,
         );
     }

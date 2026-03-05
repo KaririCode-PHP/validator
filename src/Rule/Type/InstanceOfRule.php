@@ -18,22 +18,26 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class InstanceOfRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        $className = (string) $context->getParameter('class', '');
+        $classNameParam = $context->getParameter('class', '');
+        $className = \is_string($classNameParam) ? $classNameParam : '';
 
-        if ($className === '' || !is_object($value)) {
+        if ($className === '' || ! \is_object($value)) {
             return false;
         }
 
         return $value instanceof $className;
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'type.instance_of';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must be an instance of {class}.';

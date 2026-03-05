@@ -8,6 +8,7 @@ use KaririCode\Validator\Core\ValidationContextImpl;
 use KaririCode\Validator\Rule\Collection\EachRule;
 use KaririCode\Validator\Rule\Collection\KeyExistsRule;
 use KaririCode\Validator\Rule\Collection\UniqueElementsRule;
+use KaririCode\Validator\Rule\Logic\RequiredRule;
 use KaririCode\Validator\Rule\String\EmailRule;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -38,7 +39,7 @@ final class NewCollectionRulesTest extends TestCase
 
     public function testUniqueElementsRejectsNonArray(): void
     {
-        $this->assertFalse((new UniqueElementsRule())->validate('string', $this->ctx()));
+        $this->assertFalse(new UniqueElementsRule()->validate('string', $this->ctx()));
     }
 
     public function testEachRule(): void
@@ -66,20 +67,27 @@ final class NewCollectionRulesTest extends TestCase
 
     public function testKeyExistsMissingParam(): void
     {
-        $this->assertFalse((new KeyExistsRule())->validate(['a' => 1], $this->ctx()));
+        $this->assertFalse(new KeyExistsRule()->validate(['a' => 1], $this->ctx()));
+    }
+
+    public function testKeyExistsInvalidKeyType(): void
+    {
+        // Non-string, non-int key type from parameter should return false
+        $ctx = $this->ctx(['key' => ['array', 'key']]);
+        $this->assertFalse(new KeyExistsRule()->validate(['a' => 1], $ctx));
     }
 
     public function testErrorCodes(): void
     {
-        $this->assertSame('collection.each', (new EachRule(new \KaririCode\Validator\Rule\Logic\RequiredRule()))->getErrorCode());
-        $this->assertSame('collection.key_exists', (new KeyExistsRule())->getErrorCode());
-        $this->assertSame('collection.unique', (new UniqueElementsRule())->getErrorCode());
+        $this->assertSame('collection.each', new EachRule(new RequiredRule())->getErrorCode());
+        $this->assertSame('collection.key_exists', new KeyExistsRule()->getErrorCode());
+        $this->assertSame('collection.unique', new UniqueElementsRule()->getErrorCode());
     }
 
     public function testDefaultMessages(): void
     {
-        $this->assertSame('Each item in {field} must be valid.', (new EachRule(new \KaririCode\Validator\Rule\Logic\RequiredRule()))->getDefaultMessage());
-        $this->assertSame('The {field} must contain only unique values.', (new UniqueElementsRule())->getDefaultMessage());
-        $this->assertSame('The {field} must contain the key {key}.', (new KeyExistsRule())->getDefaultMessage());
+        $this->assertSame('Each item in {field} must be valid.', new EachRule(new RequiredRule())->getDefaultMessage());
+        $this->assertSame('The {field} must contain only unique values.', new UniqueElementsRule()->getDefaultMessage());
+        $this->assertSame('The {field} must contain the key {key}.', new KeyExistsRule()->getDefaultMessage());
     }
 }

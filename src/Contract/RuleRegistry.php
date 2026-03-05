@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Contract;
 
+use KaririCode\Validator\Exception\InvalidRuleException;
+
 /**
  * Registry for validation rules, enabling name-based resolution.
  *
@@ -28,14 +30,14 @@ interface RuleRegistry
      * @param string         $alias Unique name (e.g. 'email', 'cnpj')
      * @param ValidationRule $rule  Rule instance
      *
-     * @throws \KaririCode\Validator\Exception\InvalidRuleException On duplicate alias
+     * @throws InvalidRuleException On duplicate alias
      */
     public function register(string $alias, ValidationRule $rule): void;
 
     /**
      * Resolves a rule by alias.
      *
-     * @throws \KaririCode\Validator\Exception\InvalidRuleException If alias not found
+     * @throws InvalidRuleException If alias not found
      */
     public function resolve(string $alias): ValidationRule;
 

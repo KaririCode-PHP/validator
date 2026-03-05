@@ -1,6 +1,9 @@
 <?php
+
 declare(strict_types=1);
+
 namespace KaririCode\Validator\Rule\Logic;
+
 use KaririCode\Validator\Contract\{ValidationContext, ValidationRule};
 
 /**
@@ -15,11 +18,21 @@ use KaririCode\Validator\Contract\{ValidationContext, ValidationRule};
  */
 final readonly class NullableRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
         return $value === null;
     }
 
-    public function getErrorCode(): string { return 'logic.nullable'; }
-    public function getDefaultMessage(): string { return 'The {field} must be null or valid.'; }
+    #[\Override]
+    public function getErrorCode(): string
+    {
+        return 'logic.nullable';
+    }
+
+    #[\Override]
+    public function getDefaultMessage(): string
+    {
+        return 'The {field} must be null or valid.';
+    }
 }

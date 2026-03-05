@@ -67,51 +67,58 @@ final class NewDateRulesTest extends TestCase
 
     public function testMissingParameter(): void
     {
-        $this->assertFalse((new DateBeforeRule())->validate('2025-01-01', $this->ctx()));
-        $this->assertFalse((new DateAfterRule())->validate('2025-01-01', $this->ctx()));
-        $this->assertFalse((new DateBetweenRule())->validate('2025-01-01', $this->ctx()));
+        $this->assertFalse(new DateBeforeRule()->validate('2025-01-01', $this->ctx()));
+        $this->assertFalse(new DateAfterRule()->validate('2025-01-01', $this->ctx()));
+        $this->assertFalse(new DateBetweenRule()->validate('2025-01-01', $this->ctx()));
     }
 
     public function testNonStringReturnsFalse(): void
     {
         $ctx = $this->ctx(['after' => '2025-01-01']);
-        $this->assertFalse((new DateAfterRule())->validate(42, $ctx));
-        $this->assertFalse((new DateAfterRule())->validate(null, $ctx));
-        $this->assertFalse((new DateBetweenRule())->validate(42, $this->ctx(['after' => '2025-01-01', 'before' => '2025-12-31'])));
+        $this->assertFalse(new DateAfterRule()->validate(42, $ctx));
+        $this->assertFalse(new DateAfterRule()->validate(null, $ctx));
+        $this->assertFalse(new DateBetweenRule()->validate(42, $this->ctx(['after' => '2025-01-01', 'before' => '2025-12-31'])));
     }
 
     public function testInvalidDateStringReturnsFalse(): void
     {
         $ctx = $this->ctx(['after' => '2025-01-01']);
-        $this->assertFalse((new DateAfterRule())->validate('not-a-date', $ctx));
-        $this->assertFalse((new DateAfterRule())->validate(123, $ctx));
+        $this->assertFalse(new DateAfterRule()->validate('not-a-date', $ctx));
+        $this->assertFalse(new DateAfterRule()->validate(123, $ctx));
+    }
+
+    public function testDateAfterWithNonStringAfterParam(): void
+    {
+        // Covers DateAfterRule.validate() L37: !is_string($afterStr) returns false
+        $ctx = $this->ctx(['after' => 42]);
+        $this->assertFalse(new DateAfterRule()->validate('2025-06-01', $ctx));
     }
 
     public function testDateBetweenMissingBefore(): void
     {
         // Only after param — before is null, should return false
-        $this->assertFalse((new DateBetweenRule())->validate('2025-06-01', $this->ctx(['after' => '2025-01-01'])));
+        $this->assertFalse(new DateBetweenRule()->validate('2025-06-01', $this->ctx(['after' => '2025-01-01'])));
     }
 
     public function testDateBetweenInvalidDateString(): void
     {
         // Covers DateBetweenRule.validate() L40: createFromFormat returns false
         $ctx = $this->ctx(['after' => '2025-01-01', 'before' => '2025-12-31']);
-        $this->assertFalse((new DateBetweenRule())->validate('not-a-date', $ctx));
-        $this->assertFalse((new DateAfterRule())->validate('not-a-date', $this->ctx(['after' => '2025-01-01'])));
+        $this->assertFalse(new DateBetweenRule()->validate('not-a-date', $ctx));
+        $this->assertFalse(new DateAfterRule()->validate('not-a-date', $this->ctx(['after' => '2025-01-01'])));
     }
 
     public function testErrorCodes(): void
     {
-        $this->assertSame('date.before', (new DateBeforeRule())->getErrorCode());
-        $this->assertSame('date.after', (new DateAfterRule())->getErrorCode());
-        $this->assertSame('date.between', (new DateBetweenRule())->getErrorCode());
+        $this->assertSame('date.before', new DateBeforeRule()->getErrorCode());
+        $this->assertSame('date.after', new DateAfterRule()->getErrorCode());
+        $this->assertSame('date.between', new DateBetweenRule()->getErrorCode());
     }
 
     public function testDefaultMessages(): void
     {
-        $this->assertSame('The {field} must be a date before {before}.', (new DateBeforeRule())->getDefaultMessage());
-        $this->assertSame('The {field} must be a date after {after}.', (new DateAfterRule())->getDefaultMessage());
-        $this->assertSame('The {field} must be a date between {after} and {before}.', (new DateBetweenRule())->getDefaultMessage());
+        $this->assertSame('The {field} must be a date before {before}.', new DateBeforeRule()->getDefaultMessage());
+        $this->assertSame('The {field} must be a date after {after}.', new DateAfterRule()->getDefaultMessage());
+        $this->assertSame('The {field} must be a date between {after} and {before}.', new DateBetweenRule()->getDefaultMessage());
     }
 }

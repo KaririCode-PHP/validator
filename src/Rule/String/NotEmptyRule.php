@@ -16,20 +16,23 @@ use KaririCode\Validator\Contract\ValidationRule;
  */
 final readonly class NotEmptyRule implements ValidationRule
 {
+    #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return false;
         }
 
         return trim($value) !== '';
     }
 
+    #[\Override]
     public function getErrorCode(): string
     {
         return 'string.not_empty';
     }
 
+    #[\Override]
     public function getDefaultMessage(): string
     {
         return 'The {field} must not be empty.';
