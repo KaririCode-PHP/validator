@@ -1,6 +1,6 @@
 {
     "name": "kariricode/validator",
-    "description": "Composable, rule-based data validation engine for PHP 8.4+ — #[Validate] attributes, collect-all semantics, i18n messages, powered by kariricode/property-inspector. ARFA 1.3.",
+    "description": "Composable, rule-based data validation engine for PHP 8.4+ \u2014 #[Validate] attributes, collect-all semantics, i18n messages, powered by kariricode/property-inspector. ARFA 1.3.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -8,12 +8,17 @@
         "validation",
         "php84",
         "kariricode",
-        "arfa"
+        "arfa",
+        "validation-rules",
+        "form-validation",
+        "property-inspector"
     ],
     "authors": [
         {
             "name": "Walmir Silva",
-            "email": "community@kariricode.org"
+            "email": "walmir.silva@kariricode.org",
+            "homepage": "https://github.com/walmir-silva",
+            "role": "Lead Developer"
         }
     ],
     "homepage": "https://kariricode.org",
@@ -37,8 +42,24 @@
     },
     "support": {
         "issues": "https://github.com/KaririCode-Framework/kariricode-validator/issues",
-        "source": "https://github.com/KaririCode-Framework/kariricode-validator"
+        "source": "https://github.com/KaririCode-Framework/kariricode-validator",
+        "docs": "https://github.com/KaririCode-Framework/kariricode-validator/blob/develop/README.md",
+        "security": "https://github.com/KaririCode-Framework/kariricode-validator/security/advisories/new",
+        "forum": "https://github.com/orgs/KaririCode-Framework/discussions"
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/walmir-silva"
+        }
+    ],
+    "extra": {
+        "arfa": {
+            "level": 1,
+            "conformance": "Structural (P1, P4, P5)",
+            "version": "1.3"
+        }
+    }
 }
