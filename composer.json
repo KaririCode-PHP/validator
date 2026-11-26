@@ -43,7 +43,7 @@
     "support": {
         "issues": "https://github.com/KaririCode-Framework/kariricode-validator/issues",
         "source": "https://github.com/KaririCode-Framework/kariricode-validator",
-        "docs": "https://github.com/KaririCode-Framework/kariricode-validator/blob/develop/README.md",
+        "docs": "https://github.com/KaririCode-PHP/validator/blob/main/README.md",
         "security": "https://github.com/KaririCode-Framework/kariricode-validator/security/advisories/new",
         "forum": "https://github.com/orgs/KaririCode-Framework/discussions"
     },
