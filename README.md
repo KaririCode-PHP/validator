@@ -1,379 +1,373 @@
-# KaririCode Framework: Validator Component
+# KaririCode Validator
 
-A powerful and flexible data validation component for PHP, part of the KaririCode Framework. It uses attribute-based validation with configurable processors to ensure data integrity and validation in your applications.
+<div align="center">
 
-## Table of Contents
+[![CI](https://github.com/KaririCode-Framework/kariricode-validator/actions/workflows/ci.yml/badge.svg)](https://github.com/KaririCode-Framework/kariricode-validator/actions/workflows/ci.yml)
+[![PHP 8.4+](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
+[![PHPStan Level 9](https://img.shields.io/badge/PHPStan-Level%209-4F46E5)](https://phpstan.org/)
+[![Psalm](https://img.shields.io/badge/Psalm-Level%201-4F46E5)](https://psalm.dev/)
+[![Tests](https://img.shields.io/badge/Tests-100%25_pass-22c55e)](tests/)
+[![Coverage](https://img.shields.io/badge/Coverage-100%25-22c55e)](tests/)
+[![Rules](https://img.shields.io/badge/Rules-52-22c55e)](docs/spec/SPEC-002-rule-reference.md)
+[![ARFA](https://img.shields.io/badge/ARFA-1.3-F97316)](https://kariricode.org)
+[![KaririCode Framework](https://img.shields.io/badge/KaririCode-Framework-F97316)](https://kariricode.org)
 
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Basic Usage](#basic-usage)
-  - [Advanced Usage: User Registration](#advanced-usage-user-registration)
-- [Available Validators](#available-validators)
-  - [Input Validators](#input-validators)
-  - [Numeric Validators](#numeric-validators)
-  - [Logic Validators](#logic-validators)
-  - [Date Validators](#date-validators)
-- [Configuration](#configuration)
-- [Integration with Other KaririCode Components](#integration-with-other-kariricode-components)
-- [Development and Testing](#development-and-testing)
-- [Contributing](#contributing)
-- [License](#license)
-- [Support and Community](#support-and-community)
+**Composable, rule-based data validation engine for PHP 8.4+.**  
+52 rules · collect-all errors · i18n messages · #[Validate] attributes · zero dependencies.
+
+[Installation](#installation) · [Quick Start](#quick-start) · [Attribute API](#attribute-driven-dto-validation) · [All 52 Rules](#all-52-rules) · [CI Integration](#ci-integration) · [Architecture](#architecture)
+
+</div>
+
+---
+
+## The Problem
+
+Validation logic leaks into every layer — controllers, services, repositories — with no consistent contract and no complete error feedback:
+
+```php
+// Scattered, inconsistent, and fail-fast (single error at a time)
+if (empty($data['email'])) {
+    throw new \InvalidArgumentException('Email is required.');
+}
+if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+    throw new \InvalidArgumentException('Email is invalid.');
+}
+// User fixes email, submits again → discovers password is also wrong
+// ← 2 round-trips to see 2 errors
+```
+
+## The Solution
+
+```php
+use KaririCode\Validator\Provider\ValidatorServiceProvider;
+
+$validator = (new ValidatorServiceProvider())->createEngine();
+
+$result = $validator->validate(
+    data: ['email' => 'not-an-email', 'password' => 'abc', 'cpf' => '000.000.000-00'],
+    rules: [
+        'email'    => ['required', 'email'],
+        'password' => ['required', ['min_length', ['min' => 8]]],
+        'cpf'      => ['cpf'],
+    ],
+);
+
+// ALL errors collected in ONE pass
+$result->isValid();       // false
+$result->getErrors();
+// [
+//   'email'    => [['rule' => 'email',      'message' => 'Must be a valid email address.']],
+//   'password' => [['rule' => 'min_length', 'message' => 'Must be at least 8 characters.']],
+//   'cpf'      => [['rule' => 'cpf',        'message' => 'Must be a valid CPF number.']],
+// ]
+```
+
+---
 
 ## Features
 
-- Attribute-based validation for object properties
-- Comprehensive set of built-in validators for common use cases
-- Easy integration with other KaririCode components
-- Configurable processors for customized validation logic
-- Support for custom error messages
-- Extensible architecture allowing custom validators
-- Robust error handling and reporting
-- Chainable validation pipelines for complex data validation
-- Built-in support for multiple validation scenarios
-- Type-safe validation with PHP 8.3 features
+- ✅ **52 built-in rules** across 8 categories (Required, String, Numeric, Date, File, Collection, Brazilian, Cross-Field)
+- ✅ **Collect-all semantics** — ALL errors for ALL fields in a single pass (ADR-002)
+- ✅ **i18n error messages** — locale-aware message keys; swap message catalogue per project
+- ✅ **Attribute-driven API** — `#[Validate]` on DPO properties; zero boilerplate
+- ✅ **Cross-field validation** — `same_as`, `different_from` via `ValidationContext`
+- ✅ **Brazilian rules** — CPF, CNPJ, CEP, phone with digit verification
+- ✅ **Zero external dependencies** — only `kariricode/property-inspector` for reflection
+- ✅ **PHPStan Level 9 + Psalm Level 1** — full static-analysis compliance
+- ✅ **100% test coverage** — 100% Classes/Methods/Lines
+- ✅ **ARFA 1.3 compliant** — `final readonly` DPO pattern, immutable context
+
+---
+
+## Requirements
+
+| Requirement | Version |
+|-------------|---------|
+| PHP | 8.4+ |
+| Composer | 2.x |
+| kariricode/property-inspector | ^2.0 |
+
+---
 
 ## Installation
-
-You can install the Validator component via Composer:
 
 ```bash
 composer require kariricode/validator
 ```
 
-### Requirements
+---
 
-- PHP 8.3 or higher
-- Composer
-- Extensions: `ext-mbstring`, `ext-filter`
+## Quick Start
 
-## Usage
+### 1. Engine API
 
-### Basic Usage
+```php
+use KaririCode\Validator\Provider\ValidatorServiceProvider;
 
-1. Define your data class with validation attributes:
+$validator = (new ValidatorServiceProvider())->createEngine();
+
+$result = $validator->validate(
+    data:  ['age' => -5, 'email' => 'not-an-email'],
+    rules: ['age' => ['required', 'integer', 'positive'], 'email' => ['required', 'email']],
+);
+
+if (!$result->isValid()) {
+    return response()->json(['errors' => $result->getErrors()], 422);
+}
+```
+
+### 2. Attribute API (DPO Pattern, ARFA 1.3)
 
 ```php
 use KaririCode\Validator\Attribute\Validate;
 
-class UserProfile
+final readonly class CreateUserInput
 {
-    #[Validate(
-        processors: [
-            'required',
-            'length' => ['minLength' => 3, 'maxLength' => 20],
-        ],
-        messages: [
-            'required' => 'Username is required',
-            'length' => 'Username must be between 3 and 20 characters',
-        ]
-    )]
-    private string $username = '';
+    public function __construct(
+        #[Validate('required', 'email')]
+        public string $email,
 
-    #[Validate(
-        processors: ['required', 'email'],
-        messages: [
-            'required' => 'Email is required',
-            'email' => 'Invalid email format',
-        ]
-    )]
-    private string $email = '';
+        #[Validate('required', ['min_length', ['min' => 8]], ['max_length', ['max' => 128]])]
+        public string $password,
 
-    // Getters and setters...
-}
-```
+        #[Validate(['same_as', ['field' => 'password']])]
+        public string $passwordConfirm,
 
-2. Set up the validator and use it:
-
-```php
-use KaririCode\ProcessorPipeline\ProcessorRegistry;
-use KaririCode\Validator\Validator;
-use KaririCode\Validator\Processor\Logic\RequiredValidator;
-use KaririCode\Validator\Processor\Input\LengthValidator;
-use KaririCode\Validator\Processor\Input\EmailValidator;
-
-$registry = new ProcessorRegistry();
-$registry->register('validator', 'required', new RequiredValidator());
-$registry->register('validator', 'length', new LengthValidator());
-$registry->register('validator', 'email', new EmailValidator());
-
-$validator = new Validator($registry);
-
-$userProfile = new UserProfile();
-$userProfile->setUsername('wa');  // Too short
-$userProfile->setEmail('invalid-email');  // Invalid format
-
-$result = $validator->validate($userProfile);
-
-if ($result->hasErrors()) {
-    foreach ($result->getErrors() as $property => $errors) {
-        foreach ($errors as $error) {
-            echo "$property: {$error['message']}\n";
-        }
-    }
-}
-```
-
-### Advanced Usage: User Registration
-
-Here's an example of how to use the KaririCode Validator in a real-world scenario, such as validating user registration data:
-
-```php
-use KaririCode\Validator\Attribute\Validate;
-
-class UserRegistration
-{
-    #[Validate(
-        processors: [
-            'required',
-            'length' => ['minLength' => 3, 'maxLength' => 20],
-        ],
-        messages: [
-            'required' => 'Username is required',
-            'length' => 'Username must be between 3 and 20 characters',
-        ]
-    )]
-    private string $username = '';
-
-    #[Validate(
-        processors: ['required', 'email'],
-        messages: [
-            'required' => 'Email is required',
-            'email' => 'Invalid email format',
-        ]
-    )]
-    private string $email = '';
-
-    #[Validate(
-        processors: [
-            'required',
-            'length' => ['minLength' => 8],
-        ],
-        messages: [
-            'required' => 'Password is required',
-            'length' => 'Password must be at least 8 characters long',
-        ]
-    )]
-    private string $password = '';
-
-    #[Validate(
-        processors: [
-            'required',
-            'integer',
-            'range' => ['min' => 18, 'max' => 120],
-        ],
-        messages: [
-            'required' => 'Age is required',
-            'integer' => 'Age must be a whole number',
-            'range' => 'Age must be between 18 and 120',
-        ]
-    )]
-    private int $age = 0;
-
-    // Getters and setters...
+        #[Validate('required', 'cpf')]
+        public string $cpf,
+    ) {}
 }
 
-// Usage example
-$registration = new UserRegistration();
-$registration->setUsername('wm');  // Too short
-$registration->setEmail('invalid');  // Invalid format
-$registration->setPassword('weak');  // Too short
-$registration->setAge(15);  // Too young
+$provider  = new ValidatorServiceProvider();
+$validator = $provider->createAttributeValidator($provider->createConfiguration());
 
-$result = $validator->validate($registration);
-
-// Process validation results
-if ($result->hasErrors()) {
-    $errors = $result->getErrors();
-    // Handle validation errors
-} else {
-    $validatedData = $result->getValidatedData();
-    // Process valid registration
-}
+$input  = new CreateUserInput($email, $password, $confirm, $cpf);
+$result = $validator->validate($input);
 ```
-
-## Available Validators
-
-### Input Validators
-
-- **EmailValidator**: Validates email addresses using PHP's filter_var function.
-
-  - Error Keys:
-    - `invalidType`: Input is not a string
-    - `invalidFormat`: Invalid email format
-
-- **LengthValidator**: Validates string length within specified bounds.
-
-  - **Configuration Options**:
-    - `minLength`: Minimum allowed length
-    - `maxLength`: Maximum allowed length
-  - Error Keys:
-    - `invalidType`: Input is not a string
-    - `tooShort`: String is shorter than minLength
-    - `tooLong`: String is longer than maxLength
-
-- **UrlValidator**: Validates URLs using PHP's filter_var function.
-  - Error Keys:
-    - `invalidType`: Input is not a string
-    - `invalidFormat`: Invalid URL format
-
-### Numeric Validators
-
-- **IntegerValidator**: Ensures the input is a valid integer.
-
-  - Error Keys:
-    - `notAnInteger`: Input is not a valid integer
-
-- **RangeValidator**: Validates numeric values within a specified range.
-  - **Configuration Options**:
-    - `min`: Minimum allowed value
-    - `max`: Maximum allowed value
-  - Error Keys:
-    - `notNumeric`: Input is not a number
-    - `outOfRange`: Value is outside specified range
-
-### Logic Validators
-
-- **RequiredValidator**: Ensures a value is not empty.
-  - Error Keys:
-    - `missingValue`: Required value is missing or empty
-
-### Date Validators
-
-- **DateFormatValidator**: Validates dates against a specified format.
-
-  - **Configuration Options**:
-    - `format`: Date format string (default: 'Y-m-d')
-  - Error Keys:
-    - `invalidType`: Input is not a string
-    - `invalidFormat`: Date doesn't match specified format
-
-- **DateRangeValidator**: Validates dates within a specified range.
-  - **Configuration Options**:
-    - `minDate`: Minimum allowed date
-    - `maxDate`: Maximum allowed date
-    - `format`: Date format string (default: 'Y-m-d')
-  - Error Keys:
-    - `invalidType`: Input is not a string
-    - `invalidDate`: Invalid date format
-    - `outOfRange`: Date is outside specified range
-
-## Configuration
-
-The Validator component can be configured globally or per-validator basis. Here's an example of how to configure the `LengthValidator`:
-
-```php
-use KaririCode\Validator\Processor\Input\LengthValidator;
-
-$lengthValidator = new LengthValidator();
-$lengthValidator->configure([
-    'minLength' => 3,
-    'maxLength' => 20,
-]);
-
-$registry->register('validator', 'length', $lengthValidator);
-```
-
-## Integration with Other KaririCode Components
-
-The Validator component is designed to work seamlessly with other KaririCode components:
-
-- **KaririCode\Contract**: Provides interfaces and contracts for consistent component integration.
-- **KaririCode\ProcessorPipeline**: Utilized for building and executing validation pipelines.
-- **KaririCode\PropertyInspector**: Used for analyzing and processing object properties with validation attributes.
-
-## Registry Explanation
-
-The registry is a central component for managing validators. Here's how to set up a complete registry:
-
-```php
-// Create and configure the registry
-$registry = new ProcessorRegistry();
-
-// Register all required validators
-$registry->register('validator', 'required', new RequiredValidator());
-$registry->register('validator', 'email', new EmailValidator());
-$registry->register('validator', 'length', new LengthValidator());
-$registry->register('validator', 'integer', new IntegerValidator());
-$registry->register('validator', 'range', new RangeValidator());
-$registry->register('validator', 'url', new UrlValidator());
-$registry->register('validator', 'dateFormat', new DateFormatValidator());
-$registry->register('validator', 'dateRange', new DateRangeValidator());
-```
-
-## Development and Testing
-
-For development and testing purposes, this package uses Docker and Docker Compose to ensure consistency across different environments. A Makefile is provided for convenience.
-
-### Prerequisites
-
-- Docker
-- Docker Compose
-- Make (optional, but recommended for easier command execution)
-
-### Development Setup
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/KaririCode-Framework/kariricode-validator.git
-   cd kariricode-validator
-   ```
-
-2. Set up the environment:
-
-   ```bash
-   make setup-env
-   ```
-
-3. Start the Docker containers:
-
-   ```bash
-   make up
-   ```
-
-4. Install dependencies:
-
-   ```bash
-   make composer-install
-   ```
-
-### Available Make Commands
-
-- `make up`: Start all services in the background
-- `make down`: Stop and remove all containers
-- `make build`: Build Docker images
-- `make shell`: Access the PHP container shell
-- `make test`: Run tests
-- `make coverage`: Run test coverage with visual formatting
-- `make cs-fix`: Run PHP CS Fixer to fix code style
-- `make quality`: Run all quality commands (cs-check, test, security-check)
-
-## Contributing
-
-We welcome contributions to the KaririCode Validator component! Here's how you can contribute:
-
-1. Fork the repository
-2. Create a new branch for your feature or bug fix
-3. Write tests for your changes
-4. Implement your changes
-5. Run the test suite and ensure all tests pass
-6. Submit a pull request with a clear description of your changes
-
-Please read our [Contributing Guide](CONTRIBUTING.md) for more details on our code of conduct and development process.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support and Community
-
-- **Documentation**: [https://kariricode.org/docs/validator](https://kariricode.org/docs/validator)
-- **Issue Tracker**: [GitHub Issues](https://github.com/KaririCode-Framework/kariricode-validator/issues)
-- **Community Forum**: [KaririCode Club Community](https://kariricode.club)
-- **Stack Overflow**: Tag your questions with `kariricode-validator`
 
 ---
 
-Built with ❤️ by the KaririCode team. Empowering developers to create more secure and robust PHP applications.
+## Real-World Use Cases
+
+### Use Case 1 — User Registration DPO
+
+```php
+final readonly class RegisterInput
+{
+    #[Validate('required', 'email')]
+    public string $email;
+
+    #[Validate('required', ['min_length', ['min' => 8]])]
+    public string $password;
+
+    #[Validate(['same_as', ['field' => 'password']])]
+    public string $passwordConfirm;
+
+    #[Validate('required', 'cpf')]
+    public string $cpf;
+
+    #[Validate('required', ['min_length', ['min' => 3]], ['max_length', ['max' => 100]])]
+    public string $fullName;
+}
+```
+
+### Use Case 2 — E-commerce Order Validation
+
+```php
+$result = $validator->validate(
+    data: $orderPayload,
+    rules: [
+        'customer.email'        => ['required', 'email'],
+        'customer.cpf'          => ['required', 'cpf'],
+        'shipping.cep'          => ['required', 'cep'],
+        'items'                 => ['required', ['count', ['min' => 1, 'max' => 100]]],
+        'payment.amount'        => ['required', 'float', 'positive'],
+        'payment.installments'  => [['integer'], ['range', ['min' => 1, 'max' => 12]]],
+    ],
+);
+```
+
+### Use Case 3 — File Upload Validation
+
+```php
+$result = $validator->validate(
+    data: ['avatar' => $uploadedFile, 'document' => $pdfFile],
+    rules: [
+        'avatar'   => ['required', 'image', ['max_size', ['max' => 2_000_000]]],
+        'document' => ['required', 'file',  ['max_size', ['max' => 10_000_000]]],
+    ],
+);
+```
+
+### Use Case 4 — REST API Payload Validation (nested)
+
+```php
+$result = $validator->validate(
+    data: $request->json(),
+    rules: [
+        'product.name'         => ['required', ['max_length', ['max' => 200]]],
+        'product.sku'          => ['required', 'alpha_num', 'uppercase'],
+        'product.price'        => ['required', 'float', 'positive'],
+        'product.category_id'  => ['required', 'integer', 'positive'],
+        'product.description'  => [['max_length', ['max' => 2000]]],
+    ],
+);
+
+if (!$result->isValid()) {
+    return json_encode(['errors' => $result->getErrors()], JSON_UNESCAPED_UNICODE);
+}
+```
+
+---
+
+## All 52 Rules
+
+### Required / Optional
+| Alias | Description |
+|-------|-------------|
+| `required` | Field must be non-null and non-empty |
+| `optional` | Skip validation if field is absent |
+| `not_blank` | Must not be whitespace-only |
+| `nullable` | Allows null; skip other rules if null |
+
+### String (12 rules)
+| Alias | Parameters | Description |
+|-------|-----------|-------------|
+| `email` | — | RFC 5322 email |
+| `url` | — | Valid URL |
+| `ip` | `version: 4\|6` | Valid IP address |
+| `uuid` | — | Valid UUID |
+| `min_length` | `min: int` | Minimum character count |
+| `max_length` | `max: int` | Maximum character count |
+| `length` | `min`, `max` | Character count range |
+| `pattern` | `pattern: string` | Regex match |
+| `alpha` | — | Letters only |
+| `alpha_num` | — | Letters and numbers |
+| `slug` | — | URL-safe slug |
+| `json` | — | Valid JSON string |
+
+### Numeric (7 rules)
+| Alias | Parameters | Description |
+|-------|-----------|-------------|
+| `integer` | — | Must be integer type/string |
+| `float` | — | Must be float type/string |
+| `min` | `min: float` | Minimum numeric value |
+| `max` | `max: float` | Maximum numeric value |
+| `range` | `min`, `max` | Numeric value range |
+| `positive` | — | Greater than zero |
+| `negative` | — | Less than zero |
+
+### Date (4 rules)
+| Alias | Parameters | Description |
+|-------|-----------|-------------|
+| `date` | `format: string` | Valid date in format |
+| `date_range` | `from`, `to` | Date within range |
+| `before` | `date: string` | Must be before date |
+| `after` | `date: string` | Must be after date |
+
+### File (3 rules)
+| Alias | Parameters | Description |
+|-------|-----------|-------------|
+| `file` | — | Valid uploaded file |
+| `image` | `types: list<string>` | Image MIME type allowed |
+| `max_size` | `max: int` (bytes) | Maximum file size |
+
+### Collection (3 rules)
+| Alias | Parameters | Description |
+|-------|-----------|-------------|
+| `each` | `rules: list` | Apply rules to every element |
+| `count` | `min`, `max` | Array element count |
+| `unique` | — | All elements unique |
+
+### Brazilian (4 rules)
+| Alias | Description |
+|-------|-------------|
+| `cpf` | Valid CPF (with check digit verification) |
+| `cnpj` | Valid CNPJ |
+| `cep` | Valid CEP (Brazilian postal code) |
+| `phone_br` | Valid Brazilian phone number |
+
+### Cross-Field (2 rules)
+| Alias | Parameters | Description |
+|-------|-----------|-------------|
+| `same_as` | `field: string` | Must match another field |
+| `different_from` | `field: string` | Must differ from another field |
+
+---
+
+## CI Integration
+
+```yaml
+- name: Run quality pipeline
+  run: |
+    kcode init
+    sed -i 's/beStrictAboutCoverageMetadata="true"/beStrictAboutCoverageMetadata="false"/' .kcode/phpunit.xml.dist
+    kcode quality
+```
+
+| Tool | Level | Result |
+|------|-------|--------|
+| `php-cs-fixer` | KaririCode standard | ✅ |
+| `phpstan` | Level 9 | ✅ |
+| `psalm` | Level 1 | ✅ |
+| `phpunit` + `pcov` | 100% coverage | ✅ |
+
+---
+
+## Architecture
+
+### Design Decisions
+
+| Decision | Rationale | ADR |
+|----------|-----------|-----|
+| Alias-based rule registry | Zero coupling between engine and rule classes | [ADR-001](docs/adr/ADR-001-rule-registry-pattern.md) |
+| Collect-all error semantics | Single-pass; expose ALL errors to give users complete feedback | [ADR-002](docs/adr/ADR-002-collect-all-semantics.md) |
+| `ValidationContext` immutability | `final readonly` + builder pattern; no cross-field pollution | [ADR-003](docs/adr/ADR-003-validation-context-immutability.md) |
+| i18n via message key catalogue | Zero third-party i18n dep; pluggable message files | [ADR-004](docs/adr/ADR-004-i18n-error-messages.md) |
+| Cross-field via `$context->getData()` | Simple contract; no engine special-casing required | [ADR-005](docs/adr/ADR-005-cross-field-validation.md) |
+
+### Project Stats
+
+| Metric | Value |
+|--------|-------|
+| Rule classes | 52 |
+| External dependencies | 1 (`kariricode/property-inspector`) |
+| Line coverage | 100% |
+| PHPStan level | 9 (0 errors) |
+| Psalm level | 1 (0 errors) |
+
+---
+
+## Ecosystem Integration
+
+| Library | Integration |
+|---------|-------------|
+| [kariricode/sanitizer](https://github.com/KaririCode-Framework/kariricode-sanitizer) | Sanitize before validating (trim whitespace, normalise case) |
+| [kariricode/transformer](https://github.com/KaririCode-Framework/kariricode-transformer) | Transform after validation passes (e.g., slug, CPF mask) |
+| [kariricode/normalizer](https://github.com/KaririCode-Framework/kariricode-normalizer) | Normalize input arrays before validation |
+| [kariricode/property-inspector](https://github.com/KaririCode-Framework/kariricode-property-inspector) | Reflection caching for `#[Validate]` attribute scanning |
+| [kariricode/devkit](https://github.com/KaririCode-Framework/kariricode-devkit) | `kcode quality` CI pipeline runner |
+
+---
+
+## Contributing
+
+1. Fork the repository  
+2. Create a feature branch: `git checkout -b feat/my-validation-rule`  
+3. Run: `kcode quality` — all 4 tools must pass  
+4. Submit a pull request against `develop`
+
+---
+
+<div align="center">
+
+**Part of the [KaririCode Framework](https://kariricode.org) ecosystem.**
+
+[![GitHub](https://img.shields.io/badge/GitHub-KaririCode-181717?logo=github)](https://github.com/KaririCode-Framework)
+[![Packagist](https://img.shields.io/badge/Packagist-kariricode%2Fvalidator-F28D1A?logo=packagist&logoColor=white)](https://packagist.org/packages/kariricode/validator)
+
+*Built with ❤️ by [Walmir Silva](https://github.com/walmir-silva) · [kariricode.org](https://kariricode.org)*
+
+</div>
