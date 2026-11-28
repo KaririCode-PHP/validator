@@ -4,37 +4,37 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "869696c679196693cda14bd96aa99440",
+    "content-hash": "6d123d1f0b02d523c7eda5dc7e056bc1",
     "packages": [
         {
             "name": "kariricode/contract",
-            "version": "v2.8.6",
+            "version": "v2.12.1",
             "source": {
                 "type": "git",
-                "url": "https://github.com/KaririCode-Framework/kariricode-contract.git",
-                "reference": "35935418be93009a1ce389460e6fbf87353f0dd7"
+                "url": "https://github.com/KaririCode-PHP/contract.git",
+                "reference": "6ba79c820f810c451856bee67dabc5443f0782a5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/KaririCode-Framework/kariricode-contract/zipball/35935418be93009a1ce389460e6fbf87353f0dd7",
-                "reference": "35935418be93009a1ce389460e6fbf87353f0dd7",
+                "url": "https://api.github.com/repos/KaririCode-PHP/contract/zipball/6ba79c820f810c451856bee67dabc5443f0782a5",
+                "reference": "6ba79c820f810c451856bee67dabc5443f0782a5",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.3"
-            },
-            "require-dev": {
-                "enlightn/security-checker": "2.0.0",
-                "friendsofphp/php-cs-fixer": "3.85.1",
-                "mockery/mockery": "^1.6",
-                "nunomaduro/phpinsights": "^2.11",
-                "phpunit/phpunit": "^10.5",
-                "squizlabs/php_codesniffer": "^3.10"
+                "php": "^8.4"
             },
             "type": "library",
             "extra": {
+                "arfa": {
+                    "level": 1,
+                    "version": "1.3"
+                },
+                "asvs": {
+                    "level": 1,
+                    "version": "5.0"
+                },
                 "branch-alias": {
-                    "dev-main": "1.0.x-dev"
+                    "dev-main": "2.x-dev"
                 }
             },
             "autoload": {
@@ -52,10 +52,12 @@
                     "email": "walmir.silva@kariricode.org"
                 }
             ],
-            "description": "Central repository for interface definitions in the KaririCode Framework. Implements interface code in PHP for specified namespaces, adhering to PSR standards and leveraging modern PHP features.",
+            "description": "Interfaces shared by KaririCode Framework components, so that components depend on contracts instead of on each other. Interfaces only; no runtime dependency beyond PHP.",
             "homepage": "https://kariricode.org/",
             "keywords": [
+                "KaririCode",
                 "PSRs",
+                "arfa",
                 "contract",
                 "framework",
                 "interface",
@@ -66,33 +68,40 @@
                 "issues": "https://github.com/KaririCode-Framework/kariricode-contract/issues",
                 "source": "https://github.com/KaririCode-Framework/kariricode-contract"
             },
-            "time": "2025-08-11T19:54:16+00:00"
+            "time": "2026-11-27T12:43:04+00:00"
         },
         {
             "name": "kariricode/exception",
-            "version": "v1.2.4",
+            "version": "v2.0.2",
             "source": {
                 "type": "git",
-                "url": "https://github.com/KaririCode-Framework/kariricode-exception.git",
-                "reference": "2291f90de1f3419eb8551e4b9e0ac5e32efd2382"
+                "url": "https://github.com/KaririCode-PHP/exception.git",
+                "reference": "052cebd56000b539b8a56262db7cb6516124e858"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/KaririCode-Framework/kariricode-exception/zipball/2291f90de1f3419eb8551e4b9e0ac5e32efd2382",
-                "reference": "2291f90de1f3419eb8551e4b9e0ac5e32efd2382",
+                "url": "https://api.github.com/repos/KaririCode-PHP/exception/zipball/052cebd56000b539b8a56262db7cb6516124e858",
+                "reference": "052cebd56000b539b8a56262db7cb6516124e858",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.3"
-            },
-            "require-dev": {
-                "enlightn/security-checker": "^2.0",
-                "friendsofphp/php-cs-fixer": "^3.51",
-                "phpstan/phpstan": "^1.10",
-                "phpunit/phpunit": "^11.0",
-                "squizlabs/php_codesniffer": "^3.9"
+                "kariricode/contract": "^2.11",
+                "php": "^8.4"
             },
             "type": "library",
+            "extra": {
+                "arfa": {
+                    "level": 1,
+                    "version": "1.3"
+                },
+                "asvs": {
+                    "level": 1,
+                    "version": "5.0"
+                },
+                "branch-alias": {
+                    "dev-main": "2.x-dev"
+                }
+            },
             "autoload": {
                 "psr-4": {
                     "KaririCode\\Exception\\": "src/"
@@ -105,82 +114,24 @@
             "authors": [
                 {
                     "name": "Walmir Silva",
-                    "email": "community@kariricode.org"
+                    "email": "walmir.silva@kariricode.org"
                 }
             ],
-            "description": "KaririCode Exception provides a robust and modular exception handling system for the KaririCode Framework, enabling seamless error management across various application domains.",
-            "homepage": "https://kariricode.org",
+            "description": "Optional base classes for the exception families of kariricode/contract: one abstract base per family, error codes as int-backed enums inside registered blocks, and messages that are safe to log.",
+            "homepage": "https://kariricode.org/",
             "keywords": [
-                "error-management",
-                "exception-handling",
-                "framework",
-                "kariri-code",
-                "modular-exceptions",
-                "php-exceptions",
-                "php-framework"
+                "KaririCode",
+                "arfa",
+                "contract",
+                "error-codes",
+                "exception",
+                "php84"
             ],
             "support": {
-                "issues": "https://github.com/KaririCode-Framework/kariricode-exception/issues",
-                "source": "https://github.com/KaririCode-Framework/kariricode-exception"
+                "issues": "https://github.com/KaririCode-PHP/exception/issues",
+                "source": "https://github.com/KaririCode-PHP/exception"
             },
-            "time": "2025-07-16T17:49:15+00:00"
-        },
-        {
-            "name": "kariricode/property-inspector",
-            "version": "v2.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/KaririCode-Framework/kariricode-property-inspector.git",
-                "reference": "a4c989689d69d450a44857514532afa78852c16f"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/KaririCode-Framework/kariricode-property-inspector/zipball/a4c989689d69d450a44857514532afa78852c16f",
-                "reference": "a4c989689d69d450a44857514532afa78852c16f",
-                "shasum": ""
-            },
-            "require": {
-                "kariricode/contract": "^2.8",
-                "kariricode/exception": "^1.2",
-                "php": "^8.4"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "KaririCode\\PropertyInspector\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Walmir Silva",
-                    "email": "community@kariricode.org"
-                }
-            ],
-            "description": "Attribute-based property analysis and inspection for the KaririCode Framework, enabling dynamic validation, normalization, and processing of object properties via PHP 8.4+ attributes and reflection.",
-            "homepage": "https://kariricode.org",
-            "keywords": [
-                "attribute",
-                "dynamic-analysis",
-                "framework",
-                "inspection",
-                "kariri-code",
-                "metadata",
-                "normalization",
-                "object-properties",
-                "php84",
-                "property-inspector",
-                "reflection",
-                "validation"
-            ],
-            "support": {
-                "issues": "https://github.com/KaririCode-Framework/kariricode-property-inspector/issues",
-                "source": "https://github.com/KaririCode-Framework/kariricode-property-inspector"
-            },
-            "time": "2026-03-03T18:29:33+00:00"
+            "time": "2026-11-27T15:11:21+00:00"
         }
     ],
     "packages-dev": [],

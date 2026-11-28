@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<psalm
+    errorLevel="1"
+    phpVersion="8.4"
+    findUnusedCode="false"
+    findUnusedBaselineEntry="false"
+    ensureOverrideAttribute="true"
+    resolveFromConfigFile="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config .kcode/vendor/vimeo/psalm/config.xsd"
+>
+    <projectFiles>
+        <directory name="src"/>
+    </projectFiles>
+
+    <issueHandlers>
+        <!--
+            Tool limitation (Psalm 6.19): PHP 8.4 interface properties
+            (ValidationContext::$field, $data, $parameters and $group,
+            ValidatorException::$errorCode) are not modelled. PHP enforces
+            them on every implementation, PHPStan checks them, and the
+            suites read each one. Same handler as kariricode/console and
+            kariricode/graphql.
+        -->
+        <NoInterfaceProperties errorLevel="suppress"/>
+    </issueHandlers>
+</psalm>

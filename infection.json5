@@ -1,0 +1,25 @@
+{
+    "$schema": ".kcode/vendor/infection/infection/resources/schema.json",
+    // Spec V4.3.3 §19.4 and §29.1: MSI >= 80, for all of the code the
+    // unit and integration suites cover (ADR-007). The suites touch no
+    // file, socket or process, so mutant runs can share the machine.
+    "source": { "directories": ["src"] },
+    // The rules loop over characters and items only, so no mutant can
+    // run for long; the test cases covering any mutant (composer
+    // mutation runs only those) finish in under 2 s.
+    "timeout": 5,
+    "logs": {
+        "text": "build/infection/infection.log",
+        "summary": "build/infection/summary.log"
+    },
+    "tmpDir": "build/infection/tmp",
+    "phpUnit": {
+        "configDir": ".",
+        "customPath": ".kcode/vendor/bin/phpunit"
+    },
+    "mutators": { "@default": true },
+    "testFramework": "phpunit",
+    "testFrameworkOptions": "--testsuite=unit,integration",
+    "minMsi": 80,
+    "minCoveredMsi": 80
+}

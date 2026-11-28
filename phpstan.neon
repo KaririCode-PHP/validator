@@ -1,0 +1,22 @@
+includes:
+    # phpstan-strict-rules and phpstan-phpunit, and Spec V4.3.3 §13:
+    # cognitive complexity <= 15 per method. kcode installs all three with
+    # the toolchain (devkit.php, ADR-007).
+    - .kcode/vendor/phpstan/phpstan-strict-rules/rules.neon
+    - .kcode/vendor/phpstan/phpstan-phpunit/extension.neon
+    - .kcode/vendor/phpstan/phpstan-phpunit/rules.neon
+    - .kcode/vendor/tomasvotruba/cognitive-complexity/config/extension.neon
+
+parameters:
+    level: max
+    phpVersion: 80400
+    paths:
+        - src
+        - tests
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: true
+    cognitive_complexity:
+        function: 15
+        class: 1000
+        dependency_tree: 1000
+        dependency_tree_types: []
