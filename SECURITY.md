@@ -14,7 +14,7 @@ vulnerabilities. The fix timeline is agreed per report.
 
 | Version | Status |
 |---|---|
-| 3.0.0 | Supported once tagged; QD-V433 PENDING (`docs/quality/QD-V433-COMPLIANCE.md`) |
+| 3.0.0 | Supported once tagged; QD-V433 PASS (`docs/quality/QD-V433-COMPLIANCE.md`) |
 | 2.0.0 and earlier | Not supported; the 2024 line |
 
 ## Threat Model
