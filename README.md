@@ -1,400 +1,250 @@
 # KaririCode Validator
 
-<div align="center">
+[![CI](https://github.com/KaririCode-PHP/validator/actions/workflows/ci.yml/badge.svg)](https://github.com/KaririCode-PHP/validator/actions/workflows/ci.yml)
+![PHP 8.4+](https://img.shields.io/badge/PHP-8.4%2B-777BB4)
+![ARFA 1.3 level 1](https://img.shields.io/badge/ARFA-1.3%20level%201-blue)
+![License MIT](https://img.shields.io/badge/license-MIT-green)
 
-[![CI](https://github.com/KaririCode-Framework/kariricode-validator/actions/workflows/ci.yml/badge.svg)](https://github.com/KaririCode-Framework/kariricode-validator/actions/workflows/ci.yml)
-[![PHP 8.4+](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
-[![PHPStan Level 9](https://img.shields.io/badge/PHPStan-Level%209-4F46E5)](https://phpstan.org/)
-[![Psalm](https://img.shields.io/badge/Psalm-Level%201-4F46E5)](https://psalm.dev/)
-[![Tests](https://img.shields.io/badge/Tests-100%25_pass-22c55e)](tests/)
-[![Coverage](https://img.shields.io/badge/Coverage-100%25-22c55e)](tests/)
-[![Rules](https://img.shields.io/badge/Rules-52-22c55e)](docs/spec/SPEC-002-rule-reference.md)
-[![ARFA](https://img.shields.io/badge/ARFA-1.3-F97316)](https://kariricode.org)
-[![KaririCode Framework](https://img.shields.io/badge/KaririCode-Framework-F97316)](https://kariricode.org)
+Rule-based data validation for PHP 8.4: 57 built-in rules, from strings
+and numbers to IBANs and Brazilian documents (the alphanumeric CNPJ
+included), applied to arrays by a rule map or to objects by `#[Validate]`
+attributes. Every failing rule of every field is reported, with a
+message in English, Portuguese or Spanish; a rule written down wrongly
+is the application's mistake and throws a coded exception instead of
+passing or failing silently. Part of the KaririCode Framework; Spec
+V4.3.3, ARFA 1.3 level 1.
 
-**Composable, rule-based data validation engine for PHP 8.4+.**  
-52 rules · collect-all errors · i18n messages · #[Validate] attributes · zero dependencies.
+## 1. Features
 
-[Installation](#installation) · [Quick Start](#quick-start) · [Attribute API](#attribute-driven-dto-validation) · [All 52 Rules](#all-52-rules) · [CI Integration](#ci-integration) · [Architecture](#architecture)
+- **57 rules** in ten groups: logic, strings, numbers, comparisons,
+  dates, types, collections, cross-field, financial, Brazilian
+  documents (SPEC-002).
+- **Collect-all results** — every error of every field, in order;
+  `failFast` and `maxErrorsPerField` cut it short per field (ADR-002).
+- **Rule maps** — an alias (`'email'`), a rule instance, or
+  `[alias or rule, parameters]`; fields by dotted path
+  (`'address.city'`).
+- **Attributes** — `#[Validate]` and `#[ValidationGroup]` on a DTO,
+  read through the kariricode/contract `PropertyInspector`, which
+  kariricode/property-inspector 3 implements (ADR-003).
+- **Messages** — a catalog in en, pt_BR and es, custom messages per
+  locale, a pluggable `MessageResolver`; a bound the rule applied by
+  default still appears in the message (ADR-005).
+- **Strict parameters** — a missing bound, a misspelled type, a pattern
+  that does not compile throw `InvalidRuleException` with a VAL code
+  (ADR-004).
+- **Integrations** — a kariricode/contract `Processor` and `Validator`
+  for pipelines, a `ServiceProvider` for containers, an observer that
+  receives start and completion events (ADR-006).
+- **No dependencies** beyond kariricode/contract and
+  kariricode/exception.
 
-</div>
-
----
-
-## The Problem
-
-Validation logic leaks into every layer — controllers, services, repositories — with no consistent contract and no complete error feedback:
-
-```php
-// Scattered, inconsistent, and fail-fast (single error at a time)
-if (empty($data['email'])) {
-    throw new \InvalidArgumentException('Email is required.');
-}
-if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-    throw new \InvalidArgumentException('Email is invalid.');
-}
-// User fixes email, submits again → discovers password is also wrong
-// ← 2 round-trips to see 2 errors
-```
-
-## The Solution
-
-```php
-use KaririCode\Validator\Provider\ValidatorServiceProvider;
-
-$validator = (new ValidatorServiceProvider())->createEngine();
-
-$result = $validator->validate(
-    data: ['email' => 'not-an-email', 'password' => 'abc', 'cpf' => '000.000.000-00'],
-    rules: [
-        'email'    => ['required', 'email'],
-        'password' => ['required', ['min_length', ['min' => 8]]],
-        'cpf'      => ['cpf'],
-    ],
-);
-
-// ALL errors collected in ONE pass
-$result->isValid();       // false
-$result->getErrors();
-// [
-//   'email'    => [['rule' => 'email',      'message' => 'Must be a valid email address.']],
-//   'password' => [['rule' => 'min_length', 'message' => 'Must be at least 8 characters.']],
-//   'cpf'      => [['rule' => 'cpf',        'message' => 'Must be a valid CPF number.']],
-// ]
-```
-
----
-
-## Features
-
-- ✅ **52 built-in rules** across 8 categories (Required, String, Numeric, Date, File, Collection, Brazilian, Cross-Field)
-- ✅ **Collect-all semantics** — ALL errors for ALL fields in a single pass (ADR-002)
-- ✅ **i18n error messages** — locale-aware message keys; swap message catalogue per project
-- ✅ **Attribute-driven API** — `#[Validate]` on DPO properties; zero boilerplate
-- ✅ **Cross-field validation** — `same_as`, `different_from` via `ValidationContext`
-- ✅ **Brazilian rules** — CPF, CNPJ, CEP, phone with digit verification
-- ✅ **Zero external dependencies** — only `kariricode/property-inspector` for reflection
-- ✅ **PHPStan Level 9 + Psalm Level 1** — full static-analysis compliance
-- ✅ **100% test coverage** — 100% Classes/Methods/Lines
-- ✅ **ARFA 1.3 compliant** — `final readonly` DPO pattern, immutable context
-
----
-
-## Requirements
-
-| Requirement | Version |
-|-------------|---------|
-| PHP | 8.4+ |
-| Composer | 2.x |
-| kariricode/property-inspector | ^2.0 |
-
----
-
-## Installation
+## 2. Installation
 
 ```bash
 composer require kariricode/validator
+composer require kariricode/property-inspector   # only for #[Validate] on objects
 ```
 
----
+PHP 8.4 or later.
 
-## Quick Start
-
-### 1. Engine API
+## 3. Quick Start
 
 ```php
-use KaririCode\Validator\Provider\ValidatorServiceProvider;
+<?php
 
-$validator = (new ValidatorServiceProvider())->createEngine();
+declare(strict_types=1);
 
-$result = $validator->validate(
-    data:  ['age' => -5, 'email' => 'not-an-email'],
-    rules: ['age' => ['required', 'integer', 'positive'], 'email' => ['required', 'email']],
+use KaririCode\Validator\Core\ValidatorEngine;
+
+require __DIR__ . '/vendor/autoload.php';
+
+$engine = new ValidatorEngine();
+
+$result = $engine->validate(
+    ['email' => 'ana@example', 'password' => 'secret', 'cnpj' => '12.ABC.345/01DE-35', 'nickname' => null],
+    [
+        'email' => ['required', 'email'],
+        'password' => ['required', ['length', ['min' => 12]]],
+        'cnpj' => ['required', 'cnpj'],
+        'nickname' => ['nullable', ['length', ['max' => 20]]],
+    ],
 );
 
-if (!$result->isValid()) {
-    return response()->json(['errors' => $result->getErrors()], 422);
+echo json_encode($result->messages(), JSON_PRETTY_PRINT), PHP_EOL;
+```
+
+```json
+{
+    "email": [
+        "The email must be a valid email address."
+    ],
+    "password": [
+        "The password must be at least 12 characters."
+    ]
 }
 ```
 
-### 2. Attribute API (DPO Pattern, ARFA 1.3)
+`cnpj` passes (it is the Receita Federal's example of an alphanumeric
+CNPJ) and `nickname` is null, so 'nullable' skips its other rules.
+
+## 4. Rule Maps
+
+A rule map lists, per field, the rule definitions to apply in order:
+
+| Definition | Example |
+|---|---|
+| alias | `'email'` |
+| rule instance | `new EachRule(new EmailRule())` |
+| alias with parameters | `['length', ['min' => 2, 'max' => 100]]` |
+| rule with parameters | `[new CompositeRule('custom.code', 'The {field} is invalid.', new LengthRule(), new PatternRule()), ['max' => 8, 'pattern' => '/\A\d+\z/']]` |
+
+Field names are dotted paths into nested arrays; a key that contains
+dots itself is matched first. A missing field reads as null.
+
+Register your own rules under an alias:
 
 ```php
-use KaririCode\Validator\Attribute\Validate;
+$engine->registry->register('even', new CallbackRule(
+    static fn (mixed $value): bool => is_int($value) && $value % 2 === 0,
+    errorCode: 'custom.even',
+    message: 'The {field} must be even.',
+));
+```
 
-final readonly class CreateUserInput
+## 5. The Rules
+
+| Group | Aliases |
+|---|---|
+| Logic | required, not_null, nullable, choice; and the rule classes CallbackRule, CompositeRule, ConditionalRule, AtLeastOneOfRule |
+| String | email, url, length, pattern, not_empty, alpha, alphanumeric, uuid, ulid, ip, json, hostname, slug, starts_with, ends_with |
+| Numeric | integer, decimal, positive, negative, negative_or_zero, range |
+| Comparison | equal_to, not_equal_to, greater_than, greater_than_or_equal, less_than, less_than_or_equal, between |
+| Date | date_format, date_before, date_after, date_between |
+| Type | type, instance_of |
+| Collection | count, unique, key_exists; and EachRule |
+| Cross-field | same_as, different_from, required_with, required_without |
+| Financial | luhn, iban, bic |
+| Brazilian | cpf, cnpj, cep, pis |
+
+[SPEC-002](docs/spec/SPEC-002-rule-reference.md) lists each rule's
+parameters and what it accepts. Points worth knowing:
+
+- `url` accepts http and https unless `schemes` says otherwise, so
+  `javascript:` and `file:` URLs fail.
+- `range` is inclusive, `between` exclusive; integers are compared as
+  integers.
+- `cnpj` accepts numeric and alphanumeric CNPJs, all 26 letters, upper
+  case, bare or formatted (ADR-008); `cpf`, `cep` and `pis` accept
+  bare or formatted digits and nothing else.
+- Date rules zero the fields the format does not name and reject dates
+  PHP would roll over (February 30); bounds may be strings in the
+  format or `DateTimeInterface` objects.
+
+## 6. Attributes
+
+```php
+use KaririCode\PropertyInspector\Core\ReflectionPropertyInspector;
+use KaririCode\Validator\Attribute\Validate;
+use KaririCode\Validator\Attribute\ValidationGroup;
+use KaririCode\Validator\Core\AttributeValidator;
+
+final readonly class SignUp
 {
     public function __construct(
         #[Validate('required', 'email')]
         public string $email,
-
-        #[Validate('required', ['min_length', ['min' => 8]], ['max_length', ['max' => 128]])]
+        #[Validate(['length', ['min' => 12]])]
         public string $password,
-
-        #[Validate(['same_as', ['field' => 'password']])]
-        public string $passwordConfirm,
-
-        #[Validate('required', 'cpf')]
-        public string $cpf,
+        #[Validate(['same_as', ['other' => 'password']])]
+        public string $passwordConfirmation,
+        #[Validate('required', 'uuid')]
+        #[ValidationGroup('update')]
+        public ?string $id = null,
     ) {}
 }
 
-$provider  = new ValidatorServiceProvider();
-$validator = $provider->createAttributeValidator($provider->createConfiguration());
-
-$input  = new CreateUserInput($email, $password, $confirm, $cpf);
-$result = $validator->validate($input);
+$validator = new AttributeValidator($engine, new ReflectionPropertyInspector());
+$result = $validator->validate($signUp, 'create');   // skips $id
 ```
 
----
+`#[Validate]` takes positional definitions only; named arguments throw.
+A property without `#[ValidationGroup]` is validated in every group.
+Cross-field rules see the properties that carry `#[Validate]`.
 
-## Real-World Use Cases
+## 7. Results and Messages
 
-### Use Case 1 — User Registration DPO
+`ValidationResult` holds `ValidationError`s (field, error code, message,
+parameters) in the order the rules ran: `isValid()`, `errorsFor()`,
+`firstErrorFor()`, `failedFields()`, `messages()`, `merge()`, `with()`.
 
 ```php
-final readonly class RegisterInput
-{
-    #[Validate('required', 'email')]
-    public string $email;
-
-    #[Validate('required', ['min_length', ['min' => 8]])]
-    public string $password;
-
-    #[Validate(['same_as', ['field' => 'password']])]
-    public string $passwordConfirm;
-
-    #[Validate('required', 'cpf')]
-    public string $cpf;
-
-    #[Validate('required', ['min_length', ['min' => 3]], ['max_length', ['max' => 100]])]
-    public string $fullName;
-}
+$engine = new ValidatorEngine(configuration: new ValidatorConfiguration(
+    defaultLocale: 'pt_BR',
+    failFast: true,
+    customMessages: ['pt_BR' => ['custom.even' => 'O campo {field} deve ser par.']],
+));
 ```
 
-### Use Case 2 — E-commerce Order Validation
+Messages resolve in the configured locale, then in English, then to the
+rule's own message. Placeholders take the rule's parameters and the
+field name; a value the rule applied by default (`decimal`'s two places)
+is filled in too.
+
+## 8. Exceptions
+
+Invalid input is reported in the result. Exceptions are for mistakes in
+the rules and for callers that asked for one; every exception
+implements `ValidatorException` and carries a code from VAL 3200–3299:
+
+| Code | Exception | Family | Meaning |
+|---|---|---|---|
+| 3201–3206 | InvalidRuleException | Configuration | duplicate or unknown alias, malformed definition, missing or invalid parameter, named attribute arguments |
+| 3220–3221 | ConfigurationException | Configuration | a setting out of range, a container binding of the wrong type |
+| 3230 | ValidationException | Validation | input failed where an exception was asked for (it carries the result) |
+| 3240 | UnsupportedInputException | Validation | the processor received something other than an array |
+
+## 9. Integrations
 
 ```php
-$result = $validator->validate(
-    data: $orderPayload,
-    rules: [
-        'customer.email'        => ['required', 'email'],
-        'customer.cpf'          => ['required', 'cpf'],
-        'shipping.cep'          => ['required', 'cep'],
-        'items'                 => ['required', ['count', ['min' => 1, 'max' => 100]]],
-        'payment.amount'        => ['required', 'float', 'positive'],
-        'payment.installments'  => [['integer'], ['range', ['min' => 1, 'max' => 12]]],
-    ],
-);
+// kariricode/processor-pipeline, or anything that takes a contract Processor
+$pipeline->addProcessor(new ValidationProcessor($engine, ['email' => ['required', 'email']]));
+
+// a kariricode/contract container
+(new ValidatorServiceProvider(new ValidatorConfiguration(defaultLocale: 'pt_BR')))->register($container);
+
+// events, for logs and metrics
+$engine = new ValidatorEngine(observer: static fn (object $event) => $dispatcher->dispatch($event));
 ```
 
-### Use Case 3 — File Upload Validation
+The processor returns valid input unchanged and throws
+`ValidationException` otherwise. The provider binds the registry, the
+message resolver, the engine and the `AttributeValidator` (bind a
+`PropertyInspector` for it). The observer receives a
+`ValidationStartedEvent` (field names, group) and a
+`ValidationCompletedEvent` (result, duration in ms); neither carries
+values.
 
-```php
-$result = $validator->validate(
-    data: ['avatar' => $uploadedFile, 'document' => $pdfFile],
-    rules: [
-        'avatar'   => ['required', 'image', ['max_size', ['max' => 2_000_000]]],
-        'document' => ['required', 'file',  ['max_size', ['max' => 10_000_000]]],
-    ],
-);
-```
+## 10. Security
 
-### Use Case 4 — REST API Payload Validation (nested)
+Validation is an input control: run it before the data reaches anything
+that trusts it, and validate on the server. Messages are plain text;
+escape them where you render HTML. See [SECURITY.md](SECURITY.md) for
+the threat model and the ASVS 5.0 mapping.
 
-```php
-$result = $validator->validate(
-    data: $request->json(),
-    rules: [
-        'product.name'         => ['required', ['max_length', ['max' => 200]]],
-        'product.sku'          => ['required', 'alpha_num', 'uppercase'],
-        'product.price'        => ['required', 'float', 'positive'],
-        'product.category_id'  => ['required', 'integer', 'positive'],
-        'product.description'  => [['max_length', ['max' => 2000]]],
-    ],
-);
+## 11. Architecture and Quality
 
-if (!$result->isValid()) {
-    return json_encode(['errors' => $result->getErrors()], JSON_UNESCAPED_UNICODE);
-}
-```
+| Gate | Result |
+|---|---|
+| Tests | unit, integration and conformance suites; 100 % of lines covered |
+| Static analysis | PHPStan level max (strict and PHPUnit rules), Psalm error level 1 |
+| Mutation testing | MSI recorded in [QD-V433](docs/quality/QD-V433-COMPLIANCE.md) |
+| Complexity | cyclomatic ≤ 10, nesting ≤ 3, parameters ≤ 4, cognitive ≤ 15 |
 
----
+The gates run through KaririCode Devkit (`kcode`); see
+[CONTRIBUTING.md](CONTRIBUTING.md). Design decisions are in
+[docs/adr](docs/adr), the specification in [docs/spec](docs/spec).
 
-## All 52 Rules
+## 12. License
 
-### Required / Optional
-| Alias | Description |
-|-------|-------------|
-| `required` | Field must be non-null and non-empty |
-| `optional` | Skip validation if field is absent |
-| `not_blank` | Must not be whitespace-only |
-| `nullable` | Allows null; skip other rules if null |
-
-### String (12 rules)
-| Alias | Parameters | Description |
-|-------|-----------|-------------|
-| `email` | — | RFC 5322 email |
-| `url` | — | Valid URL |
-| `ip` | `version: 4\|6` | Valid IP address |
-| `uuid` | — | Valid UUID |
-| `min_length` | `min: int` | Minimum character count |
-| `max_length` | `max: int` | Maximum character count |
-| `length` | `min`, `max` | Character count range |
-| `pattern` | `pattern: string` | Regex match |
-| `alpha` | — | Letters only |
-| `alpha_num` | — | Letters and numbers |
-| `slug` | — | URL-safe slug |
-| `json` | — | Valid JSON string |
-
-### Numeric (7 rules)
-| Alias | Parameters | Description |
-|-------|-----------|-------------|
-| `integer` | — | Must be integer type/string |
-| `float` | — | Must be float type/string |
-| `min` | `min: float` | Minimum numeric value |
-| `max` | `max: float` | Maximum numeric value |
-| `range` | `min`, `max` | Numeric value range |
-| `positive` | — | Greater than zero |
-| `negative` | — | Less than zero |
-
-### Date (4 rules)
-| Alias | Parameters | Description |
-|-------|-----------|-------------|
-| `date` | `format: string` | Valid date in format |
-| `date_range` | `from`, `to` | Date within range |
-| `before` | `date: string` | Must be before date |
-| `after` | `date: string` | Must be after date |
-
-### File (3 rules)
-| Alias | Parameters | Description |
-|-------|-----------|-------------|
-| `file` | — | Valid uploaded file |
-| `image` | `types: list<string>` | Image MIME type allowed |
-| `max_size` | `max: int` (bytes) | Maximum file size |
-
-### Collection (3 rules)
-| Alias | Parameters | Description |
-|-------|-----------|-------------|
-| `each` | `rules: list` | Apply rules to every element |
-| `count` | `min`, `max` | Array element count |
-| `unique` | — | All elements unique |
-
-### Brazilian (4 rules)
-| Alias | Description |
-|-------|-------------|
-| `cpf` | Valid CPF (with check digit verification) |
-| `cnpj` | Valid CNPJ |
-| `cep` | Valid CEP (Brazilian postal code) |
-| `phone_br` | Valid Brazilian phone number |
-
-### Cross-Field (2 rules)
-| Alias | Parameters | Description |
-|-------|-----------|-------------|
-| `same_as` | `field: string` | Must match another field |
-| `different_from` | `field: string` | Must differ from another field |
-
----
-
-## CI Integration
-
-```yaml
-- name: Run quality pipeline
-  run: |
-    kcode init
-    kcode quality
-```
-
-| Tool | Level | Result |
-|------|-------|--------|
-| `php-cs-fixer` | KaririCode standard | ✅ |
-| `phpstan` | Level 9 | ✅ |
-| `psalm` | Level 1 | ✅ |
-| `phpunit` + `pcov` | 100% coverage | ✅ |
-
----
-
-## Architecture
-
-### Design Decisions
-
-| Decision | Rationale | ADR |
-|----------|-----------|-----|
-| Alias-based rule registry | Zero coupling between engine and rule classes | [ADR-001](docs/adr/ADR-001-rule-registry-pattern.md) |
-| Collect-all error semantics | Single-pass; expose ALL errors to give users complete feedback | [ADR-002](docs/adr/ADR-002-collect-all-semantics.md) |
-| `ValidationContext` immutability | `final readonly` + builder pattern; no cross-field pollution | [ADR-003](docs/adr/ADR-003-validation-context-immutability.md) |
-| i18n via message key catalogue | Zero third-party i18n dep; pluggable message files | [ADR-004](docs/adr/ADR-004-i18n-error-messages.md) |
-| Cross-field via `$context->getData()` | Simple contract; no engine special-casing required | [ADR-005](docs/adr/ADR-005-cross-field-validation.md) |
-
-### Project Stats
-
-| Metric | Value |
-|--------|-------|
-| Rule classes | 52 |
-| External dependencies | 1 (`kariricode/property-inspector`) |
-| Line coverage | 100% |
-| PHPStan level | 9 (0 errors) |
-| Psalm level | 1 (0 errors) |
-
----
-
-## Ecosystem Integration
-
-| Library | Integration |
-|---------|-------------|
-| [kariricode/sanitizer](https://github.com/KaririCode-Framework/kariricode-sanitizer) | Sanitize before validating (trim whitespace, normalise case) |
-| [kariricode/transformer](https://github.com/KaririCode-Framework/kariricode-transformer) | Transform after validation passes (e.g., slug, CPF mask) |
-| [kariricode/normalizer](https://github.com/KaririCode-Framework/kariricode-normalizer) | Normalize input arrays before validation |
-| [kariricode/property-inspector](https://github.com/KaririCode-Framework/kariricode-property-inspector) | Reflection caching for `#[Validate]` attribute scanning |
-| [kariricode/devkit](https://github.com/KaririCode-PHP/devkit) | `kcode quality` CI pipeline runner |
-
----
-
-## Development
-
-This package keeps no QA tools in `require-dev`. [KaririCode Devkit](https://github.com/KaririCode-PHP/devkit) (`kcode`) installs PHPUnit, PHPStan, Psalm, PHP-CS-Fixer and Rector into `.kcode/` (git-ignored) the first time a command needs them.
-
-Install `kcode` once (PHP 8.4+):
-
-```bash
-wget https://github.com/KaririCode-PHP/devkit/releases/latest/download/kcode.phar
-chmod +x kcode.phar
-sudo mv kcode.phar /usr/local/bin/kcode
-```
-
-From the repository root:
-
-```bash
-composer install          # runtime dependencies only
-kcode init                # generate .kcode/ and install the toolchain (first run)
-kcode test                # PHPUnit (--coverage, --suite=Unit, any PHPUnit option)
-kcode analyse             # PHPStan, then Psalm
-kcode cs:fix              # apply the code style (--check reports only)
-kcode quality             # the CI gate: cs-fixer, PHPStan, Psalm, PHPUnit
-kcode quality --docker    # the same gate inside the kcode PHP container
-```
-
-Project overrides go in `devkit.php` (`kcode init --config` writes a template); run `kcode init` after editing it. `kcode clean --all` removes `.kcode/`.
-
----
-
-## Contributing
-
-1. Fork the repository  
-2. Create a feature branch: `git checkout -b feat/my-validation-rule`  
-3. Run: `kcode quality` — all 4 tools must pass  
-4. Submit a pull request against `main`
-
----
-
-<div align="center">
-
-**Part of the [KaririCode Framework](https://kariricode.org) ecosystem.**
-
-[![GitHub](https://img.shields.io/badge/GitHub-KaririCode-181717?logo=github)](https://github.com/KaririCode-Framework)
-[![Packagist](https://img.shields.io/badge/Packagist-kariricode%2Fvalidator-F28D1A?logo=packagist&logoColor=white)](https://packagist.org/packages/kariricode/validator)
-
-*Built with ❤️ by [Walmir Silva](https://github.com/walmir-silva) · [kariricode.org](https://kariricode.org)*
-
-</div>
+MIT — see [LICENSE](LICENSE).
