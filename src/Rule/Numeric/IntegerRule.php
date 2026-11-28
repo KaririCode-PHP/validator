@@ -6,31 +6,40 @@ namespace KaririCode\Validator\Rule\Numeric;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: IntegerRule ────────────────────────────────────────────────
+// An integer, or a string or float that is one.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a value is an integer or integer-like string.
+ * Accepts what FILTER_VALIDATE_INT accepts: integers, integral floats
+ * (12.0) and decimal integer strings, with optional sign and surrounding
+ * whitespace. Booleans, "1e3", "012" and values beyond PHP_INT_MAX fail.
  *
- * @package KaririCode\Validator\Rule\Numeric
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Preconditions: none.
+ *
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['quantity' => ['integer']]
+ *
+ * References: PHP FILTER_VALIDATE_INT; SPEC-002 §3.
  */
 final readonly class IntegerRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        return filter_var($value, FILTER_VALIDATE_INT) !== false;
+        return !is_bool($value) && filter_var($value, FILTER_VALIDATE_INT) !== false;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'numeric.integer';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be an integer.';
+        return new Violation(code: 'numeric.integer', message: 'The {field} must be an integer.');
     }
 }

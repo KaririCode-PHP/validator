@@ -4,88 +4,54 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Core;
 
-use KaririCode\PropertyInspector\AttributeAnalyzer;
-use KaririCode\PropertyInspector\Utility\PropertyInspector;
+use KaririCode\Contract\Inspection\PropertyInspector;
 use KaririCode\Validator\Attribute\Validate;
 use KaririCode\Validator\Attribute\ValidationGroup;
 use KaririCode\Validator\Result\ValidationResult;
 
+// ── Core: AttributeValidator ─────────────────────────────────────────
+// Validates an object by the #[Validate] attributes on its properties.
+// ─────────────────────────────────────────────────────────────────────
+
 /**
- * Validates objects by reading #[Validate] attributes from properties.
+ * Reads an object's #[Validate] attributes through a kariricode/contract
+ * PropertyInspector (kariricode/property-inspector 3 implements it) and
+ * validates the property values with the engine. With a group, only the
+ * properties in that group are validated. Cross-field rules see the
+ * properties that carry #[Validate].
  *
- * Uses kariricode/property-inspector for reflection caching and
- * attribute scanning — eliminates manual ReflectionClass loops.
+ * Preconditions: the inspector decides what an unreadable property means;
+ * kariricode/property-inspector's ReflectionPropertyInspector throws for
+ * an uninitialized one.
  *
- * Supports #[ValidationGroup] filtering via an optional $group parameter.
+ * Thread-safety: immutable; one AttributeRules per call.
  *
- * ```php
- * final readonly class CreateUserRequest
- * {
- *     public function __construct(
- *         #[Validate('required', 'email')]
- *         #[ValidationGroup('create', 'update')]
- *         public string $email,
+ * Side effects: none beyond the inspector's reads and the engine's
+ * observer.
  *
- *         #[Validate('required', ['length', ['min' => 8]])]
- *         #[ValidationGroup('create')]
- *         public string $password,
- *     ) {}
- * }
+ * Example:
  *
- * $validator = new AttributeValidator($engine);
- * $result = $validator->validate(new CreateUserRequest(...));
- * ```
+ *     $validator = new AttributeValidator(new ValidatorEngine(), new ReflectionPropertyInspector());
+ *     $result = $validator->validate(new SignUp(email: 'ana@example.com', password: 'secret'));
  *
- * @package KaririCode\Validator\Core
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.2.0 ARFA 1.3
+ * References: kariricode/property-inspector ADR-008 and ADR-009; ADR-003.
  */
 final readonly class AttributeValidator
 {
-    /**
-     * Scans for both #[Validate] and #[ValidationGroup] on the same properties.
-     * IS_INSTANCEOF ensures repeatable attributes are all captured.
-     */
-    private PropertyInspector $inspector;
+    public function __construct(
+        private ValidatorEngine $engine,
+        private PropertyInspector $inspector,
+    ) {}
 
-    public function __construct(private ValidatorEngine $engine)
-    {
-        // Scan for Validate; ValidationGroup is handled by the handler
-        // using a second AttributeAnalyzer pass via a combined inspector.
-        // We use IS_INSTANCEOF so both attribute classes are returned.
-        $this->inspector = new PropertyInspector(
-            new AttributeAnalyzer(Validate::class),
-        );
-    }
-
-    /**
-     * Validates an object by introspecting #[Validate] and #[ValidationGroup] attributes.
-     *
-     * @param object      $object Object to validate
-     * @param string|null $group  Validation group filter (null = all groups)
-     */
     public function validate(object $object, ?string $group = null): ValidationResult
     {
-        // We need to inspect BOTH Validate and ValidationGroup attributes.
-        // The handler receives all instances; it handles ValidationGroup internally.
-        $handler = new ValidateAttributeHandler($group);
+        $rules = new AttributeRules();
+        $this->inspector->inspect(object: $object, attributeClass: Validate::class, handler: $rules);
 
-        // Run a combined scan: Validate + ValidationGroup
-        $validateHandler = $this->inspector->inspect($object, $handler);
-
-        // For group filtering we need a second pass for ValidationGroup attributes
         if ($group !== null) {
-            $groupInspector = new PropertyInspector(
-                new AttributeAnalyzer(ValidationGroup::class),
-            );
-            $groupInspector->inspect($object, $validateHandler);
+            $this->inspector->inspect(object: $object, attributeClass: ValidationGroup::class, handler: $rules);
         }
 
-        /** @var ValidateAttributeHandler $validateHandler */
-        return $this->engine->validate(
-            $validateHandler->getProcessedPropertyValues(),
-            $validateHandler->getFieldRules(),
-            $group,
-        );
+        return $this->engine->validate(data: $rules->values($group), fieldRules: $rules->fieldRules($group), group: $group);
     }
 }

@@ -6,45 +6,39 @@ namespace KaririCode\Validator\Rule\Brazilian;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: CepRule ────────────────────────────────────────────────────
+// A CEP (Brazilian postal code).
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates Brazilian CEP (Código de Endereçamento Postal).
+ * Accepts 8 digits, bare or as 00000-000, except 00000-000. It checks
+ * the format, not whether the Correios assigned the code.
  *
- * Accepts formatted (00000-000) or unformatted (00000000) input.
- * Validates format only — does not check range against Correios database.
+ * Preconditions: none; non-strings and other formats fail.
  *
- * @package KaririCode\Validator\Rule\Brazilian
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['cep' => ['cep']]
+ *
+ * References: Correios, Código de Endereçamento Postal; SPEC-002 §10.
  */
 final readonly class CepRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
-            return false;
-        }
-
-        $digits = preg_replace('/\D/', '', $value);
-
-        if ($digits === null || \strlen($digits) !== 8) {
-            return false;
-        }
-
-        // CEP cannot be all zeros
-        return $digits !== '00000000';
+        return is_string($value) && preg_match('/\A\d{5}-?\d{3}\z/', $value) === 1 && str_replace(search: '-', replace: '', subject: $value) !== '00000000';
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'brazilian.cep';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} is not a valid CEP.';
+        return new Violation(code: 'brazilian.cep', message: 'The {field} is not a valid CEP.');
     }
 }

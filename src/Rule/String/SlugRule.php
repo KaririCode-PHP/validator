@@ -6,33 +6,39 @@ namespace KaririCode\Validator\Rule\String;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: SlugRule ───────────────────────────────────────────────────
+// A lower-case URL slug.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates URL slug format (lowercase, alphanumeric, hyphen-separated).
+ * Accepts lower-case ASCII letters and digits in groups joined by single
+ * hyphens: "my-post-2" passes; "My-Post", "-a", "a--b" and "a_b" fail.
  *
- * @package KaririCode\Validator\Rule\String
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Preconditions: none; non-strings fail.
+ *
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['slug' => ['slug']]
+ *
+ * References: SPEC-002 §2.
  */
 final readonly class SlugRule implements ValidationRule
 {
-    private const string PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
-
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        return \is_string($value) && preg_match(self::PATTERN, $value) === 1;
+        return is_string($value) && preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/', $value) === 1;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'string.slug';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be a valid URL slug.';
+        return new Violation(code: 'string.slug', message: 'The {field} must be a valid URL slug.');
     }
 }

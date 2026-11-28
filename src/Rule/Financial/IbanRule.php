@@ -6,80 +6,58 @@ namespace KaririCode\Validator\Rule\Financial;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: IbanRule ───────────────────────────────────────────────────
+// An IBAN whose check digits are right.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates International Bank Account Number (IBAN) format and check digits.
+ * Ignores whitespace and case, requires a country code, two check digits
+ * and 11 to 30 alphanumerics (15 to 34 characters in all), and checks
+ * the ISO 7064 MOD 97-10 remainder. It does not check the national
+ * length or format of each country.
  *
- * Implements ISO 13616-1:2020 validation (MOD 97-10 check).
- * Zero external dependencies — pure PHP bcmath.
+ * Preconditions: none; non-strings fail.
  *
- * References:
- * - ISO 13616-1:2020 (IBAN structure)
- * - ECBS "IBAN: International Bank Account Number" (2003)
+ * Thread-safety: stateless.
  *
- * @package KaririCode\Validator\Rule\Financial
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['account' => ['iban']]
+ *
+ * References: ISO 13616-1:2020; ISO/IEC 7064:2003 (MOD 97-10); SPEC-002 §9.
  */
 final readonly class IbanRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
+        if (!is_string($value)) {
             return false;
         }
 
-        $iban = strtoupper(preg_replace('/\s+/', '', $value) ?? '');
+        $iban = strtoupper((string) preg_replace(pattern: '/\s+/', replacement: '', subject: $value));
 
-        if (! preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{4,30}$/', $iban)) {
+        if (preg_match('/\A[A-Z]{2}\d{2}[A-Z0-9]{11,30}\z/', $iban) !== 1) {
             return false;
         }
 
-        // Move first 4 chars to end
-        $rearranged = substr($iban, 4) . substr($iban, 0, 4);
-
-        // Convert letters to numbers (A=10, B=11, ..., Z=35)
-        $numeric = '';
-        for ($i = 0, $len = \strlen($rearranged); $i < $len; ++$i) {
-            $char = $rearranged[$i];
-            $numeric .= ctype_alpha($char)
-                ? (string) (\ord($char) - 55)
-                : $char;
-        }
-
-        // MOD 97-10 check: $numeric is digit-only by construction
-        if (\function_exists('bcmod')) {
-            /** @psalm-suppress ArgumentTypeCoercion $numeric is always a numeric string */
-            return bcmod($numeric, '97') === '1';
-        }
-
-        // @codeCoverageIgnoreStart
-        // Fallback: chunked modulo for systems without bcmath
-        return $this->mod97($numeric) === 1;
-    }
-
-    private function mod97(string $numeric): int
-    {
         $remainder = 0;
 
-        for ($i = 0, $len = \strlen($numeric); $i < $len; ++$i) {
-            $remainder = ($remainder * 10 + (int) $numeric[$i]) % 97;
+        foreach (str_split(substr($iban, 4) . substr(string: $iban, offset: 0, length: 4)) as $character) {
+            $number = ctype_alpha($character) ? ord($character) - 55 : $character;
+            $remainder = (int) ($remainder . $number) % 97;
         }
 
-        return $remainder;
-    }
-    // @codeCoverageIgnoreEnd
-
-    #[\Override]
-    public function getErrorCode(): string
-    {
-        return 'financial.iban';
+        return $remainder === 1;
     }
 
     #[\Override]
-    public function getDefaultMessage(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'The {field} is not a valid IBAN.';
+        return new Violation(code: 'financial.iban', message: 'The {field} is not a valid IBAN.');
     }
 }

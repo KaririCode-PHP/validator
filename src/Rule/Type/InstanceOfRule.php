@@ -6,40 +6,47 @@ namespace KaririCode\Validator\Rule\Type;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: InstanceOfRule ─────────────────────────────────────────────
+// The value must be an instance of a class or interface.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a value is an instance of a given class/interface.
+ * Accepts objects that are instances of 'class'. A class, interface or
+ * enum that does not exist is the application's mistake and throws
+ * instead of failing every value.
  *
- * Parameter: `class` (string) — FQCN of expected class/interface.
+ * Preconditions: 'class' names an existing class, interface or enum.
  *
- * @package KaririCode\Validator\Rule\Type
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['when' => [['instance_of', ['class' => DateTimeInterface::class]]]]
+ *
+ * References: SPEC-002 §6.
  */
 final readonly class InstanceOfRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        $classNameParam = $context->getParameter('class', '');
-        $className = \is_string($classNameParam) ? $classNameParam : '';
+        $class = $context->stringParameter('class');
 
-        if ($className === '' || ! \is_object($value)) {
-            return false;
+        if (!class_exists($class) && !interface_exists($class) && !enum_exists($class)) {
+            throw InvalidRuleException::invalidParameter(field: $context->field, parameter: 'class', expected: 'an existing class, interface or enum', given: var_export($class, true));
         }
 
-        return $value instanceof $className;
+        return $value instanceof $class;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'type.instance_of';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be an instance of {class}.';
+        return new Violation(code: 'type.instance_of', message: 'The {field} must be an instance of {class}.');
     }
 }

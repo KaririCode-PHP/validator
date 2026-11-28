@@ -6,112 +6,90 @@ namespace KaririCode\Validator\Tests\Unit\Core;
 
 use KaririCode\Validator\Attribute\Validate;
 use KaririCode\Validator\Attribute\ValidationGroup;
+use KaririCode\Validator\Core\AttributeRules;
 use KaririCode\Validator\Core\AttributeValidator;
-use KaririCode\Validator\Core\ValidateAttributeHandler;
-use KaririCode\Validator\Provider\ValidatorServiceProvider;
+use KaririCode\Validator\Core\ValidatorEngine;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Exception\ValidatorCode;
+use KaririCode\Validator\Tests\Support\ReflectionInspector;
+use KaririCode\Validator\Tests\Support\SignUp;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use stdClass;
+
+// ── Unit: AttributeValidatorTest ─────────────────────────────────────
+// #[Validate] and #[ValidationGroup] through the contract PropertyInspector.
+// ─────────────────────────────────────────────────────────────────────
 
 #[CoversClass(AttributeValidator::class)]
-#[CoversClass(ValidateAttributeHandler::class)]
+#[CoversClass(AttributeRules::class)]
+#[CoversClass(Validate::class)]
+#[CoversClass(ValidationGroup::class)]
 final class AttributeValidatorTest extends TestCase
 {
-    public function testValidatesObjectFromAttributes(): void
+    #[Test]
+    public function anObjectIsValidatedByTheAttributesOnItsProperties(): void
     {
-        $validator = new ValidatorServiceProvider()->createAttributeValidator();
-        $dto = new class ('invalid', 'ab') {
-            public function __construct(
-                #[Validate('required', 'email')]
-                public string $email,
-                #[Validate('required', ['length', ['min' => 8]])]
-                public string $password,
-            ) {
-            }
-        };
+        $inspector = new ReflectionInspector();
+        $validator = new AttributeValidator(new ValidatorEngine(), $inspector);
 
-        $result = $validator->validate($dto);
-        $this->assertFalse($result->isValid());
-        $this->assertNotEmpty($result->errorsFor('email'));
-        $this->assertNotEmpty($result->errorsFor('password'));
+        $result = $validator->validate(new SignUp(email: 'ana', password: 'short', passwordConfirmation: 'other', nickname: str_repeat('n', 21), backupEmails: ['x']));
+
+        self::assertSame([
+            'email' => ['The email must be a valid email address.'],
+            'password' => ['The password must be at least 12 characters.'],
+            'passwordConfirmation' => ['The passwordConfirmation must match password.'],
+            'nickname' => ['The nickname must be at most 20 characters.'],
+            'id' => ['The id field is required.', 'The id must be a valid UUID.'],
+            'backupEmails' => ['Each item in backupEmails must be valid.'],
+        ], $result->messages());
+        self::assertSame([Validate::class], $inspector->inspected);
     }
 
-    public function testValidObjectPassesValidation(): void
+    #[Test]
+    public function aGroupValidatesItsPropertiesAndThoseWithoutGroup(): void
     {
-        $validator = new ValidatorServiceProvider()->createAttributeValidator();
-        $dto = new class ('user@test.com', 'securepassword') {
-            public function __construct(
-                #[Validate('required', 'email')]
-                public string $email,
-                #[Validate('required', ['length', ['min' => 8]])]
-                public string $password,
-            ) {
-            }
-        };
+        $inspector = new ReflectionInspector();
+        $validator = new AttributeValidator(new ValidatorEngine(), $inspector);
+        $signUp = new SignUp(email: 'ana@example.com', password: 'correct horse battery', passwordConfirmation: 'correct horse battery', backupEmails: ['x']);
 
-        $result = $validator->validate($dto);
-        $this->assertTrue($result->isValid());
+        self::assertSame(['backupEmails'], $validator->validate($signUp, 'create')->failedFields());
+        self::assertSame(['id', 'backupEmails'], $validator->validate($signUp, 'update')->failedFields());
+        self::assertSame([], $validator->validate($signUp, 'archive')->failedFields());
+        self::assertSame([Validate::class, ValidationGroup::class, Validate::class, ValidationGroup::class, Validate::class, ValidationGroup::class], $inspector->inspected);
     }
 
-    public function testGroupFilteringSkipsNonMatchingProperties(): void
+    #[Test]
+    public function theCollectorIgnoresOtherAttributesAndJoinsRepeatedOnes(): void
     {
-        $validator = new ValidatorServiceProvider()->createAttributeValidator();
-        $dto = new class ('user@test.com', '') {
-            public function __construct(
-                #[Validate('required', 'email')]
-                #[ValidationGroup('create', 'update')]
-                public string $email,
-                #[Validate('required', ['length', ['min' => 8]])]
-                #[ValidationGroup('create')]
-                public string $password,
-            ) {
-            }
-        };
+        $rules = new AttributeRules();
+        $rules->handleAttribute('a', new Validate('required'), 'x');
+        $rules->handleAttribute('a', new Validate(['length', ['max' => 3]]), 'x');
+        $rules->handleAttribute('a', new stdClass(), 'ignored');
+        $rules->handleAttribute('b', new ValidationGroup('admin'), 'y');
+        $rules->handleAttribute('b', new Validate('email'), 'y');
 
-        // 'update' group — password should be skipped
-        $result = $validator->validate($dto, 'update');
-        $this->assertTrue($result->isValid());
+        self::assertSame(['a' => ['required', ['length', ['max' => 3]]], 'b' => ['email']], $rules->fieldRules(null));
+        self::assertSame(['a' => 'x', 'b' => 'y'], $rules->values(null));
+        self::assertSame(['a' => 'x'], $rules->values('public'));
+        self::assertSame(['a' => 'x', 'b' => 'y'], $rules->values('admin'));
+        self::assertSame(['a' => ['required', ['length', ['max' => 3]]]], $rules->fieldRules('public'));
     }
 
-    public function testCreateGroupValidatesBothFields(): void
+    #[Test]
+    public function validateTakesPositionalRulesOnly(): void
     {
-        $validator = new ValidatorServiceProvider()->createAttributeValidator();
-        $dto = new class ('user@test.com', '') {
-            public function __construct(
-                #[Validate('required', 'email')]
-                #[ValidationGroup('create', 'update')]
-                public string $email,
-                #[Validate('required', ['length', ['min' => 8]])]
-                #[ValidationGroup('create')]
-                public string $password,
-            ) {
-            }
-        };
+        self::assertSame(['required', ['length', ['min' => 1]]], (new Validate('required', ['length', ['min' => 1]]))->rules);
+        self::assertSame(['create', 'update'], (new ValidationGroup('create', 'update'))->groups);
+        self::assertSame(['create'], (new ValidationGroup(first: 'create'))->groups);
 
-        $result = $validator->validate($dto, 'create');
-        $this->assertFalse($result->isValid());
-        $this->assertNotEmpty($result->errorsFor('password'));
-    }
-
-    public function testValidateAttributeHandlerProcessingResults(): void
-    {
-        // Covers ValidateAttributeHandler::getProcessingResultMessages() and
-        // getProcessingResultErrors() — both are required by PropertyAttributeHandler
-        // interface and return empty arrays since the handler is stateless.
-        $handler = new ValidateAttributeHandler();
-        $this->assertSame([], $handler->getProcessingResultMessages());
-        $this->assertSame([], $handler->getProcessingResultErrors());
-    }
-
-    public function testHandleAttributeIgnoresUnknownAttributes(): void
-    {
-        // Covers ValidateAttributeHandler::handleAttribute() L49: the '!instanceof Validate' early return.
-        // When an attribute of unknown type is passed, handleAttribute returns null.
-        $handler = new ValidateAttributeHandler();
-        // Use a non-Validate, non-ValidationGroup attribute object
-        $unknownAttr = new \stdClass();
-        $result = $handler->handleAttribute('field', $unknownAttr, 'value');
-        $this->assertNull($result);
-        // Verify no rules were collected for that field
-        $this->assertEmpty($handler->getFieldRules());
+        try {
+            new Validate('required', mode: 'strict', level: 'high');
+            self::fail('Named arguments were accepted.');
+        } catch (InvalidRuleException $exception) {
+            self::assertSame(ValidatorCode::NamedAttributeArguments, $exception->errorCode);
+            self::assertSame("[VAL_3206] #[Validate] takes no named arguments (mode, level); pass parameters as ['alias', ['parameter' => value]].", $exception->getMessage());
+        }
     }
 }

@@ -6,20 +6,34 @@ namespace KaririCode\Validator\Rule\Logic;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: CompositeRule ──────────────────────────────────────────────
+// Several rules reported as one.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * AND-composes multiple rules into a single rule.
+ * Passes when every inner rule passes, and reports one error with its own
+ * code and message instead of one per inner rule: a "strong password"
+ * built from length, pattern and not_empty fails as one requirement.
  *
- * All inner rules must pass for the composite to pass. Follows the
- * Composite Pattern (GoF) applied to the Specification Pattern.
+ * Preconditions: at least one inner rule.
  *
- * @package KaririCode\Validator\Rule\Logic
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     $strong = new CompositeRule('custom.strong_password', 'The {field} is too weak.', new LengthRule(), new PatternRule());
+ *     $engine->validate($data, ['password' => [[$strong, ['min' => 12, 'pattern' => '/\d/']]]]);
+ *
+ * References: SPEC-002 §1.
  */
 final readonly class CompositeRule implements ValidationRule
 {
-    /** @var array<ValidationRule> */
+    /** @var array<array-key, ValidationRule> */
     private array $rules;
 
     public function __construct(
@@ -27,24 +41,22 @@ final readonly class CompositeRule implements ValidationRule
         private string $message,
         ValidationRule ...$rules,
     ) {
+        if ($rules === []) {
+            throw InvalidRuleException::noRules('CompositeRule');
+        }
+
         $this->rules = $rules;
     }
 
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        return array_all($this->rules, fn ($rule) => $rule->validate($value, $context));
+        return array_all($this->rules, static fn(ValidationRule $rule): bool => $rule->validate($value, $context));
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return $this->errorCode;
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return $this->message;
+        return new Violation(code: $this->errorCode, message: $this->message);
     }
 }

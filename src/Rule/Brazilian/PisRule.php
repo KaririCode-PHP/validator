@@ -6,61 +6,58 @@ namespace KaririCode\Validator\Rule\Brazilian;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: PisRule ────────────────────────────────────────────────────
+// A PIS/PASEP/NIT with a valid check digit.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates Brazilian PIS/PASEP/NIT number.
+ * Accepts 11 digits, bare or as 000.00000.00-0, whose check digit
+ * matches the modulo 11 algorithm with weights 3, 2, 9 … 2. Numbers made
+ * of one repeated digit fail.
  *
- * Implements the check-digit algorithm (Módulo 11 with weights 3,2,9,8,7,6,5,4,3,2).
+ * Preconditions: none; non-strings and other formats fail.
  *
- * References:
- * - Decreto nº 97.936/1989 (PIS/PASEP)
+ * Thread-safety: stateless.
  *
- * @package KaririCode\Validator\Rule\Brazilian
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['pis' => ['pis']]
+ *
+ * References: Caixa Econômica Federal, PIS/PASEP check digit (modulo 11); SPEC-002 §10.
  */
 final readonly class PisRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
+        if (!is_string($value) || preg_match('/\A\d{3}\.?\d{5}\.?\d{2}-?\d\z/', $value) !== 1) {
             return false;
         }
 
-        $digits = preg_replace('/\D/', '', $value);
+        $digits = str_replace(search: ['.', '-'], replace: '', subject: $value);
 
-        if ($digits === null || \strlen($digits) !== 11) {
+        if (preg_match('/\A(\d)\1{10}\z/', $digits) === 1) {
             return false;
         }
 
-        // All same digits = invalid
-        if (preg_match('/^(\d)\1{10}$/', $digits) === 1) {
-            return false;
-        }
-
-        $weights = [3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
         $sum = 0;
 
-        for ($i = 0; $i < 10; ++$i) {
-            $sum += (int) $digits[$i] * $weights[$i];
+        foreach ([3, 2, 9, 8, 7, 6, 5, 4, 3, 2] as $index => $weight) {
+            $sum += (ord($digits[$index]) - 48) * $weight;
         }
 
         $remainder = $sum % 11;
-        $check = $remainder < 2 ? 0 : 11 - $remainder;
 
-        return (int) $digits[10] === $check;
+        return (int) $digits[10] === ($remainder < 2 ? 0 : 11 - $remainder);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'brazilian.pis';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} is not a valid PIS/PASEP.';
+        return new Violation(code: 'brazilian.pis', message: 'The {field} is not a valid PIS/PASEP.');
     }
 }

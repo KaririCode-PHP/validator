@@ -4,216 +4,206 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Core;
 
+use Closure;
 use KaririCode\Validator\Configuration\ValidatorConfiguration;
 use KaririCode\Validator\Contract\MessageResolver;
 use KaririCode\Validator\Contract\RuleRegistry;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Event\ValidationCompletedEvent;
+use KaririCode\Validator\Event\ValidationStartedEvent;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\ValidationError;
 use KaririCode\Validator\Result\ValidationResult;
+use KaririCode\Validator\Result\Violation;
+use KaririCode\Validator\Rule\Logic\NullableRule;
+
+// ── Core: ValidatorEngine ────────────────────────────────────────────
+// Runs the rules of each field and collects every failure.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Central validation engine orchestrating rules against data.
+ * Validates an array of fields against a rule map: for each field, it
+ * reads the value by its dotted path, applies the field's rules in order
+ * with their parameters, and records a ValidationError with a resolved
+ * message for every rule that fails. By default every rule runs
+ * (collect-all); failFast stops a field at its first error and
+ * maxErrorsPerField caps the errors per field. A field whose rules
+ * include 'nullable' and whose value is null passes without running the
+ * others. The observer receives a ValidationStartedEvent and a
+ * ValidationCompletedEvent per call.
  *
- * Accepts a field-rule map and validates each field against its
- * configured rules, collecting errors into a ValidationResult.
+ * Preconditions: a rule definition is an alias, a ValidationRule, or a
+ * list [alias or rule, parameters]; anything else is an
+ * InvalidRuleException, as is an unknown alias or a missing parameter.
  *
- * Supports fail-fast mode (stop on first error per field),
- * max-errors-per-field limiting, and group-based filtering.
+ * Thread-safety: immutable; the registry is read, never written.
  *
- * ## ARFA 1.3 Alignment
+ * Side effects: the observer is called twice per validation.
  *
- * P1 (Immutable State): Input data is not mutated.
- * P2 (Reactive Composition): Rules compose via pipeline per field.
- * P5 (Observability): Events emitted for start/complete/fail.
+ * Example:
  *
- * References:
- * - Martin, R.C. "Clean Architecture", Ch. 22 (Use Cases)
- * - Evans, E. "Domain-Driven Design", Ch. 9 (Specification Pattern)
+ *     $result = (new ValidatorEngine())->validate(
+ *         ['email' => 'ana@example.com', 'age' => 17],
+ *         ['email' => ['required', 'email'], 'age' => ['integer', ['range', ['min' => 18]]]],
+ *     );
+ *     $result->messages(); // ['age' => ['The age must be at least 18.']]
  *
- * @package KaririCode\Validator\Core
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * References: ADR-001; ADR-002; ADR-006; SPEC-001.
  */
 final readonly class ValidatorEngine
 {
-    public function __construct(private RuleRegistry $registry, private ?MessageResolver $messageResolver = null, private ?ValidatorConfiguration $configuration = new ValidatorConfiguration())
-    {
+    public RuleRegistry $registry;
+
+    public ValidatorConfiguration $configuration;
+
+    public MessageResolver $messages;
+
+    private ?Closure $observer;
+
+    public function __construct(
+        ?RuleRegistry $registry = null,
+        ?ValidatorConfiguration $configuration = null,
+        ?MessageResolver $messages = null,
+        ?Closure $observer = null,
+    ) {
+        $this->configuration = $configuration ?? new ValidatorConfiguration();
+        $this->registry = $registry ?? InMemoryRuleRegistry::withDefaults();
+        $this->messages = $messages ?? DefaultMessageResolver::fromConfiguration($this->configuration);
+        $this->observer = $observer;
     }
 
     /**
-     * Validates data against a field-rule definition map.
-     *
-     * @param array<string, mixed>       $data       Data to validate
-     * @param array<string, list<mixed>> $fieldRules Map of field => rules
-     * @param string|null                $group      Validation group
-     *
-     * Rule format per field:
-     * - string: alias name (e.g. 'required', 'email')
-     * - ValidationRule instance: direct rule
-     * - array: ['alias', ['param' => 'value']] — alias with parameters
+     * @param array<array-key, mixed> $data       the fields to validate
+     * @param array<array-key, mixed> $fieldRules field path => list of rule definitions
      */
-    public function validate(
-        array $data,
-        array $fieldRules,
-        ?string $group = null,
-    ): ValidationResult {
-        $result = new ValidationResult();
-        $baseContext = ValidationContextImpl::create($data, $group);
+    public function validate(array $data, array $fieldRules, ?string $group = null): ValidationResult
+    {
+        $startedAt = hrtime(true);
+        $fields = array_map(strval(...), array_keys($fieldRules));
+        $this->emit(new ValidationStartedEvent(fields: $fields, group: $group, timestamp: microtime(true)));
+        $context = new RuleContext(data: $data, group: $group);
+        $errors = [];
 
+        /** @var mixed $rules */
         foreach ($fieldRules as $field => $rules) {
-            $value = $this->resolveValue($data, $field);
-            $fieldContext = $baseContext->withField($field);
-            $fieldErrorCount = 0;
-
-            foreach ($rules as $ruleDefinition) {
-                if ($this->shouldStopField($fieldErrorCount)) {
-                    break;
-                }
-
-                if (! \is_string($ruleDefinition) && ! $ruleDefinition instanceof ValidationRule && ! \is_array($ruleDefinition)) {
-                    continue;
-                }
-
-                $hasError = $this->applyRule($ruleDefinition, $value, $fieldContext, $field, $result);
-
-                if ($hasError) {
-                    ++$fieldErrorCount;
-
-                    if ($this->configuration instanceof ValidatorConfiguration && $this->configuration->failFast) {
-                        break;
-                    }
-                }
-            }
+            array_push($errors, ...$this->validateField($context->withField((string) $field), $rules));
         }
+
+        $result = new ValidationResult(...$errors);
+        $this->emit(new ValidationCompletedEvent(result: $result, durationMs: (hrtime(true) - $startedAt) / 1_000_000));
 
         return $result;
     }
 
     /**
-     * Returns the current configuration.
+     * @return list<ValidationError>
      */
-    public function getConfiguration(): ValidatorConfiguration|null
+    private function validateField(RuleContext $context, mixed $rules): array
     {
-        return $this->configuration;
-    }
+        $definitions = $this->definitions($context->field, $rules);
+        /** @var mixed $value */
+        $value = $context->fieldValue($context->field);
 
-    /**
-     * Resolves a value from nested data using dot-notation.
-     *
-     * @param array<string, mixed> $data
-     */
-    private function resolveValue(array $data, string $field): mixed
-    {
-        $keys = explode('.', $field);
-        $current = $data;
+        if ($value === null && array_any($definitions, static fn(array $definition): bool => $definition[0] instanceof NullableRule)) {
+            return [];
+        }
 
-        foreach ($keys as $key) {
-            if (! \is_array($current) || ! \array_key_exists($key, $current)) {
-                return null;
+        $errors = [];
+
+        foreach ($definitions as [$rule, $parameters]) {
+            $ruleContext = $context->withParameters($parameters);
+
+            if ($rule->validate($value, $ruleContext)) {
+                continue;
             }
-            $current = $current[$key];
+
+            $errors[] = $this->error($rule->violation($ruleContext), $ruleContext);
+
+            if ($this->fieldIsDone(count($errors))) {
+                break;
+            }
         }
 
-        return $current;
+        return $errors;
     }
 
     /**
-     * Applies a single rule definition to a value. Returns true if error added.
-     *
-     * @param string|ValidationRule|array<mixed> $ruleDefinition
+     * @return list<array{ValidationRule, array<string, mixed>}>
      */
-    private function applyRule(
-        string|ValidationRule|array $ruleDefinition,
-        mixed $value,
-        ValidationContextImpl $context,
-        string $field,
-        ValidationResult $result,
-    ): bool {
-        [$rule, $parameters] = $this->resolveRuleDefinition($ruleDefinition);
-        $parameterizedContext = $parameters !== [] ? $context->withParameters($parameters) : $context;
-
-        if (! $rule->validate($value, $parameterizedContext)) {
-            $message = $this->resolveMessage($rule, $parameters, $field);
-            $result->add($field, $rule->getErrorCode(), $message, $parameters);
-
-            return true;
+    private function definitions(string $field, mixed $rules): array
+    {
+        if (!is_array($rules) || !array_is_list($rules)) {
+            throw InvalidRuleException::invalidDefinition(field: $field, reason: 'the rules of a field are a list');
         }
 
-        return false;
+        return array_map(fn(mixed $definition): array => $this->definition($field, $definition), $rules);
     }
 
     /**
-     * Resolves a rule definition into a ValidationRule + parameters.
-     *
-     * @param string|ValidationRule|array<mixed> $definition
-     * @return array{0: ValidationRule, 1: array<string, mixed>}
+     * @return array{ValidationRule, array<string, mixed>}
      */
-    private function resolveRuleDefinition(string|ValidationRule|array $definition): array
+    private function definition(string $field, mixed $definition): array
     {
         if ($definition instanceof ValidationRule) {
             return [$definition, []];
         }
 
-        if (\is_string($definition)) {
+        if (is_string($definition)) {
             return [$this->registry->resolve($definition), []];
         }
 
-        // Array format: ['alias', ['min' => 3, 'max' => 255]]
-        $alias = $definition[0];
-        $params = isset($definition[1]) && \is_array($definition[1]) ? $definition[1] : [];
-
-        $rule = \is_string($alias)
-            ? $this->registry->resolve($alias)
-            : $alias;
-
-        \assert($rule instanceof ValidationRule);
-
-        return [$rule, $params];
-    }
-
-    /**
-     * Determines whether to stop collecting errors for the current field.
-     */
-    private function shouldStopField(int $fieldErrorCount): bool
-    {
-        $max = $this->configuration instanceof ValidatorConfiguration ? $this->configuration->maxErrorsPerField : 0;
-
-        return $max > 0 && $fieldErrorCount >= $max;
-    }
-
-    /**
-     * Resolves the error message using MessageResolver or rule default.
-     *
-     * @param array<string, mixed> $parameters
-     */
-    private function resolveMessage(
-        ValidationRule $rule,
-        array $parameters,
-        string $field,
-    ): string {
-        if ($this->messageResolver instanceof MessageResolver) {
-            return $this->messageResolver->resolve(
-                $rule->getErrorCode(),
-                array_merge($parameters, ['field' => $field]),
-            );
+        if (!is_array($definition) || !array_is_list($definition) || count($definition) > 2) {
+            throw InvalidRuleException::invalidDefinition(field: $field, reason: 'a rule is an alias, a ValidationRule, or [alias or rule, parameters]');
         }
 
-        return $this->interpolate($rule->getDefaultMessage(), array_merge($parameters, ['field' => $field]));
+        return [$this->rule($field, $definition[0] ?? null), $this->parameters($field, $definition[1] ?? [])];
+    }
+
+    private function rule(string $field, mixed $rule): ValidationRule
+    {
+        if (is_string($rule)) {
+            return $this->registry->resolve($rule);
+        }
+
+        return $rule instanceof ValidationRule ? $rule : throw InvalidRuleException::invalidDefinition(field: $field, reason: 'the first item names the rule, by alias or as a ValidationRule');
     }
 
     /**
-     * Simple placeholder interpolation: `{key}` → value.
-     *
-     * @param array<string, mixed> $parameters
+     * @return array<string, mixed>
      */
-    private function interpolate(string $message, array $parameters): string
+    private function parameters(string $field, mixed $parameters): array
     {
-        $replacements = [];
-        foreach ($parameters as $key => $value) {
-            if (\is_scalar($value) || $value === null) {
-                $replacements['{' . $key . '}'] = (string) ($value ?? '');
-            }
+        if (!is_array($parameters) || array_filter(array_keys($parameters), is_int(...)) !== []) {
+            throw InvalidRuleException::invalidDefinition(field: $field, reason: 'the parameters of a rule are a map of names to values');
         }
 
-        return strtr($message, $replacements);
+        /** @var array<string, mixed> $parameters */
+        return $parameters;
+    }
+
+    private function fieldIsDone(int $errors): bool
+    {
+        $limit = $this->configuration->maxErrorsPerField;
+
+        return $this->configuration->failFast || ($limit > 0 && $errors >= $limit);
+    }
+
+    private function error(Violation $violation, RuleContext $context): ValidationError
+    {
+        $parameters = [...$context->parameters, ...$violation->parameters];
+
+        return new ValidationError(
+            field: $context->field,
+            errorCode: $violation->code,
+            message: $this->messages->resolve(errorCode: $violation->code, fallback: $violation->message, parameters: [...$parameters, 'field' => $context->field]),
+            parameters: $parameters,
+        );
+    }
+
+    private function emit(ValidationStartedEvent|ValidationCompletedEvent $event): void
+    {
+        if ($this->observer !== null) {
+            ($this->observer)($event);
+        }
     }
 }

@@ -6,42 +6,40 @@ namespace KaririCode\Validator\Rule\Logic;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\Blank;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: RequiredRule ───────────────────────────────────────────────
+// The value must be filled in.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a value is present and non-empty.
+ * Fails when the value is missing: null, a string of whitespace only, or
+ * an empty array. Zero, "0" and false are values, so they pass.
  *
- * Considers null, empty string, and empty array as "not present".
- * Zero (0) and false are considered present (they are valid values).
+ * Preconditions: none.
  *
- * @package KaririCode\Validator\Rule\Logic
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['name' => ['required']]
+ *
+ * References: SPEC-002 §1.
  */
 final readonly class RequiredRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if ($value === null) {
-            return false;
-        }
-
-        if (\is_string($value) && trim($value) === '') {
-            return false;
-        }
-
-        return ! (\is_array($value) && $value === []);
+        return !Blank::is($value);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'logic.required';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} field is required.';
+        return new Violation(code: 'logic.required', message: 'The {field} field is required.');
     }
 }

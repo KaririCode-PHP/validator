@@ -6,56 +6,42 @@ namespace KaririCode\Validator\Rule\CrossField;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\Blank;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: RequiredWithoutRule ────────────────────────────────────────
+// Required when another field is not filled in.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a field is present when another field is absent.
+ * Fails when neither this field nor the field named by 'other' is filled
+ * in: one of two contacts, say.
  *
- * Parameter: `other` (string) — field name to check absence of.
+ * Preconditions: 'other' names a field.
  *
- * @package KaririCode\Validator\Rule\CrossField
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['phone' => [['required_without', ['other' => 'email']]]]
+ *
+ * References: SPEC-002 §8.
  */
 final readonly class RequiredWithoutRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        $otherParam = $context->getParameter('other', '');
-        $otherField = \is_string($otherParam) ? $otherParam : '';
-        $rootData = $context->getRootData();
+        $other = $context->stringParameter('other');
 
-        // If other field present and non-empty, this rule doesn't apply
-        if (\array_key_exists($otherField, $rootData) && ! $this->isEmpty($rootData[$otherField])) {
-            return true;
-        }
-
-        // Other field absent — this field must be present
-        return ! $this->isEmpty($value);
-    }
-
-    private function isEmpty(mixed $value): bool
-    {
-        if ($value === null) {
-            return true;
-        }
-
-        if (\is_string($value) && trim($value) === '') {
-            return true;
-        }
-
-        return \is_array($value) && $value === [];
+        return !Blank::is($context->fieldValue($other)) || !Blank::is($value);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'crossfield.required_without';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} is required when {other} is absent.';
+        return new Violation(code: 'crossfield.required_without', message: 'The {field} is required when {other} is absent.');
     }
 }

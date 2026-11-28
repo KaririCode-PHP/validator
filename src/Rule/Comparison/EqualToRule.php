@@ -6,33 +6,44 @@ namespace KaririCode\Validator\Rule\Comparison;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: EqualToRule ────────────────────────────────────────────────
+// The value must be identical to an expected one.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a value is strictly equal to the expected value.
+ * Compares with === against 'expected', so types matter: 1 is not "1".
  *
- * Parameter: `expected` (mixed).
+ * Preconditions: 'expected' is given, null included.
  *
- * @package KaririCode\Validator\Rule\Comparison
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['terms' => [['equal_to', ['expected' => true]]]]
+ *
+ * References: SPEC-002 §5.
  */
 final readonly class EqualToRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        return $value === $context->getParameter('expected');
+        return $value === $this->expected($context);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'comparison.equal_to';
+        return new Violation(code: 'comparison.equal_to', message: 'The {field} must be equal to {expected}.');
     }
 
-    #[\Override]
-    public function getDefaultMessage(): string
+    private function expected(ValidationContext $context): mixed
     {
-        return 'The {field} must be equal to {expected}.';
+        return $context->hasParameter('expected') ? $context->parameter('expected') : throw InvalidRuleException::missingParameter(field: $context->field, parameter: 'expected');
     }
 }

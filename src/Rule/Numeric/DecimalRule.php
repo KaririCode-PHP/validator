@@ -6,48 +6,61 @@ namespace KaririCode\Validator\Rule\Numeric;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\NumericValue;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: DecimalRule ────────────────────────────────────────────────
+// A number with at most so many decimal places.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a value is a decimal number with a maximum number of decimal places.
+ * Counts the decimal places of the number as written, ignoring trailing
+ * zeros and taking exponents into account ("1.50" has 1, "1.5e-3" has
+ * 4); a float counts by its shortest exact representation. Integers have
+ * none.
  *
- * Parameter: `places` (int, default 2).
+ * Preconditions: 'places', when given, is 0 or more; 2 by default.
  *
- * @package KaririCode\Validator\Rule\Numeric
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['price' => ['decimal'], 'rate' => [['decimal', ['places' => 4]]]]
+ *
+ * References: SPEC-002 §3.
  */
 final readonly class DecimalRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! is_numeric($value)) {
+        $places = $this->places($context);
+        $number = NumericValue::of($value);
+
+        if ($number === null) {
             return false;
         }
 
-        $placesParam = $context->getParameter('places', 2);
-        $places = is_numeric($placesParam) ? (int) $placesParam : 2;
-        $stringValue = (string) $value;
-        $dotPos = strpos($stringValue, '.');
+        $parts = explode('e', strtolower(is_string($value) ? trim($value) : var_export($number, true)));
+        $dot = strpos($parts[0], '.');
+        $decimals = $dot === false ? 0 : strlen(rtrim(substr($parts[0], $dot + 1), '0'));
 
-        if ($dotPos === false) {
-            return true; // Integer — zero decimal places
-        }
-
-        $decimalPart = substr($stringValue, $dotPos + 1);
-
-        return \strlen(rtrim($decimalPart, '0')) <= $places;
+        return $decimals - (int) ($parts[1] ?? 0) <= $places;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'numeric.decimal';
+        return new Violation(code: 'numeric.decimal', message: 'The {field} must be a number with at most {places} decimal places.', parameters: ['places' => $this->places($context)]);
     }
 
-    #[\Override]
-    public function getDefaultMessage(): string
+    private function places(ValidationContext $context): int
     {
-        return 'The {field} must be a decimal number with at most {places} decimal places.';
+        $places = $context->intParameter('places', 2);
+
+        return $places >= 0 ? $places : throw InvalidRuleException::invalidParameter(field: $context->field, parameter: 'places', expected: '0 or more', given: (string) $places);
     }
 }

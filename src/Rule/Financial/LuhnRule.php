@@ -6,64 +6,58 @@ namespace KaririCode\Validator\Rule\Financial;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: LuhnRule ───────────────────────────────────────────────────
+// A number whose Luhn check digit is right.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates credit card numbers using the Luhn algorithm (ISO/IEC 7812-1).
+ * Strips spaces and hyphens, then requires 8 digits or more and a Luhn
+ * sum divisible by 10: card numbers, IMEIs. It does not identify the
+ * card brand or issuer.
  *
- * Accepts numeric strings with optional spaces/hyphens.
+ * Preconditions: none; strings and integers are read.
  *
- * References:
- * - ISO/IEC 7812-1:2017 (Identification cards — Numbering system)
- * - Luhn, H.P. "Computer for Verifying Numbers", US Patent 2,950,048 (1960)
+ * Thread-safety: stateless.
  *
- * @package KaririCode\Validator\Rule\Financial
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['card' => ['luhn']]
+ *
+ * References: ISO/IEC 7812-1:2017 Annex B; SPEC-002 §9.
  */
 final readonly class LuhnRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value) && ! \is_int($value)) {
+        if (!is_string($value) && !is_int($value)) {
             return false;
         }
 
-        $digits = preg_replace('/[\s-]/', '', (string) $value);
+        $digits = str_replace(search: [' ', '-'], replace: '', subject: (string) $value);
 
-        if ($digits === null || $digits === '' || ! ctype_digit($digits) || \strlen($digits) < 8) {
+        if (strlen($digits) < 8 || !ctype_digit($digits)) {
             return false;
         }
 
         $sum = 0;
-        $length = \strlen($digits);
-        $parity = $length % 2;
+        $parity = strlen($digits) % 2;
 
-        for ($i = 0; $i < $length; ++$i) {
-            $digit = (int) $digits[$i];
-
-            if ($i % 2 === $parity) {
-                $digit *= 2;
-                if ($digit > 9) {
-                    $digit -= 9;
-                }
-            }
-
-            $sum += $digit;
+        foreach (str_split($digits) as $index => $digit) {
+            $product = (ord($digit) - 48) * ($index % 2 === $parity ? 2 : 1);
+            $sum += $product > 9 ? $product - 9 : $product;
         }
 
         return $sum % 10 === 0;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'financial.luhn';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} is not a valid card number.';
+        return new Violation(code: 'financial.luhn', message: 'The {field} is not a valid card number.');
     }
 }

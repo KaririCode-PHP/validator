@@ -6,33 +6,40 @@ namespace KaririCode\Validator\Rule\String;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: AlphaRule ──────────────────────────────────────────────────
+// Letters only, in any script.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a string contains only Unicode letters.
+ * Accepts a non-empty string made only of Unicode letters (general
+ * category L): "José" and "Ωmega" pass; "abc1", "a b", "" and a
+ * trailing newline fail.
  *
- * Uses \pL (Letter) Unicode category for full i18n support.
+ * Preconditions: none; non-strings and invalid UTF-8 fail.
  *
- * @package KaririCode\Validator\Rule\String
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['name' => ['alpha']]
+ *
+ * References: Unicode TR #18 (property L); SPEC-002 §2.
  */
 final readonly class AlphaRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        return \is_string($value) && $value !== '' && preg_match('/^\pL+$/u', $value) === 1;
+        return is_string($value) && preg_match('/\A\pL+\z/u', $value) === 1;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'string.alpha';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must contain only letters.';
+        return new Violation(code: 'string.alpha', message: 'The {field} must contain only letters.');
     }
 }

@@ -6,79 +6,59 @@ namespace KaririCode\Validator\Rule\Brazilian;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: CpfRule ────────────────────────────────────────────────────
+// A CPF with valid check digits.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates Brazilian CPF (Cadastro de Pessoas Físicas).
+ * Accepts 11 digits, bare or as 000.000.000-00, whose two check digits
+ * match the Receita Federal modulo 11 algorithm. Numbers made of one
+ * repeated digit, which pass the arithmetic, fail.
  *
- * Implements the Receita Federal check-digit algorithm (Módulo 11).
- * Accepts formatted (000.000.000-00) or unformatted (00000000000) input.
- * Zero external dependencies.
+ * Preconditions: none; non-strings and other formats fail.
  *
- * References:
- * - Receita Federal do Brasil — Instrução Normativa RFB nº 1.548/2015
+ * Thread-safety: stateless.
  *
- * @package KaririCode\Validator\Rule\Brazilian
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['cpf' => ['cpf']]
+ *
+ * References: Receita Federal do Brasil, CPF check digit algorithm (modulo 11); SPEC-002 §10.
  */
 final readonly class CpfRule implements ValidationRule
 {
-    /** Known-invalid sequences where all digits are the same. */
-    private const array BLACKLIST = [
-        '00000000000', '11111111111', '22222222222', '33333333333',
-        '44444444444', '55555555555', '66666666666', '77777777777',
-        '88888888888', '99999999999',
-    ];
-
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
+        if (!is_string($value) || preg_match('/\A\d{3}\.?\d{3}\.?\d{3}-?\d{2}\z/', $value) !== 1) {
             return false;
         }
 
-        $digits = preg_replace('/\D/', '', $value);
+        $digits = str_replace(search: ['.', '-'], replace: '', subject: $value);
 
-        if ($digits === null || \strlen($digits) !== 11) {
-            return false;
-        }
-
-        if (\in_array($digits, self::BLACKLIST, true)) {
-            return false;
-        }
-
-        // First check digit
-        $sum = 0;
-        for ($i = 0; $i < 9; ++$i) {
-            $sum += (int) $digits[$i] * (10 - $i);
-        }
-        $remainder = ($sum * 10) % 11;
-        $firstCheck = $remainder === 10 ? 0 : $remainder;
-
-        if ((int) $digits[9] !== $firstCheck) {
-            return false;
-        }
-
-        // Second check digit
-        $sum = 0;
-        for ($i = 0; $i < 10; ++$i) {
-            $sum += (int) $digits[$i] * (11 - $i);
-        }
-        $remainder = ($sum * 10) % 11;
-        $secondCheck = $remainder === 10 ? 0 : $remainder;
-
-        return (int) $digits[10] === $secondCheck;
+        return preg_match('/\A(\d)\1{10}\z/', $digits) !== 1
+            && self::checkDigit($digits, 9) === (int) $digits[9]
+            && self::checkDigit($digits, 10) === (int) $digits[10];
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'brazilian.cpf';
+        return new Violation(code: 'brazilian.cpf', message: 'The {field} is not a valid CPF.');
     }
 
-    #[\Override]
-    public function getDefaultMessage(): string
+    private static function checkDigit(string $digits, int $length): int
     {
-        return 'The {field} is not a valid CPF.';
+        $sum = 0;
+
+        for ($index = 0; $index < $length; ++$index) {
+            $sum += (ord($digits[$index]) - 48) * ($length + 1 - $index);
+        }
+
+        return $sum * 10 % 11 % 10;
     }
 }

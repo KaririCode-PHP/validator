@@ -6,51 +6,72 @@ namespace KaririCode\Validator\Rule\String;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: LengthRule ─────────────────────────────────────────────────
+// A string length in characters, within bounds.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates string length within min/max bounds.
+ * Counts characters, not bytes (mb_strlen, UTF-8), and checks them
+ * against 'min' and 'max', both inclusive. With only one bound, the
+ * message names only that bound.
  *
- * Uses mb_strlen() for multibyte-safe length measurement.
- * Parameters: `min` (int, default 0), `max` (int|null, default null).
+ * Preconditions: 'min' or 'max', or both, as integers.
  *
- * @package KaririCode\Validator\Rule\String
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['password' => [['length', ['min' => 12]]], 'name' => [['length', ['min' => 2, 'max' => 100]]]]
+ *
+ * References: SPEC-002 §2.
  */
 final readonly class LengthRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
+        [$min, $max] = $this->bounds($context);
+
+        if (!is_string($value)) {
             return false;
         }
 
         $length = mb_strlen($value, 'UTF-8');
-        $minParam = $context->getParameter('min', 0);
-        $min = is_numeric($minParam) ? (int) $minParam : 0;
-        $max = $context->getParameter('max');
 
-        if ($length < $min) {
-            return false;
-        }
-
-        if ($max !== null && $length > (int) (is_numeric($max) ? $max : 0)) {
-            return false;
-        }
-
-        return true;
+        return ($min === null || $length >= $min) && ($max === null || $length <= $max);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'string.length';
+        [$min, $max] = $this->bounds($context);
+
+        if ($max === null) {
+            return new Violation(code: 'string.length_min', message: 'The {field} must be at least {min} characters.');
+        }
+
+        return $min === null
+            ? new Violation(code: 'string.length_max', message: 'The {field} must be at most {max} characters.')
+            : new Violation(code: 'string.length', message: 'The {field} must be between {min} and {max} characters.');
     }
 
-    #[\Override]
-    public function getDefaultMessage(): string
+    /**
+     * @return array{?int, ?int}
+     */
+    private function bounds(ValidationContext $context): array
     {
-        return 'The {field} must be between {min} and {max} characters.';
+        $min = $context->hasParameter('min') ? $context->intParameter('min') : null;
+        $max = $context->hasParameter('max') ? $context->intParameter('max') : null;
+
+        if ($min === null && $max === null) {
+            throw InvalidRuleException::missingBounds($context->field);
+        }
+
+        return [$min, $max];
     }
 }

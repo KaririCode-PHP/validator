@@ -6,55 +6,46 @@ namespace KaririCode\Validator\Rule\Date;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\DateValue;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: DateAfterRule ──────────────────────────────────────────────
+// A date later than a bound.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a date is after a given boundary.
+ * Accepts a date strictly later than 'after'. The value is a string in
+ * 'format' (Y-m-d unless set) or a DateTimeInterface; the bound is a
+ * string in the same format or a DateTimeInterface. Unnamed fields
+ * are zero, so a date is never later than itself.
  *
- * Parameters: `after` (string, date), `format` (string, default 'Y-m-d').
+ * Preconditions: 'after' is a date in 'format' or a DateTimeInterface.
  *
- * @package KaririCode\Validator\Rule\Date
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['ends_on' => [['date_after', ['after' => '2030-01-01']]]]
+ *
+ * References: PHP DateTimeImmutable::createFromFormat(); SPEC-002 §4.
  */
 final readonly class DateAfterRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
-            return false;
-        }
+        $format = $context->stringParameter('format', 'Y-m-d');
+        $bound = DateValue::bound(context: $context, name: 'after', format: $format);
+        $date = DateValue::of($value, $format);
 
-        $format = $context->getParameter('format', 'Y-m-d');
-        $format = \is_string($format) ? $format : 'Y-m-d';
-        $afterStr = $context->getParameter('after');
-
-        if ($afterStr === null) {
-            return false;
-        }
-
-        $date = \DateTimeImmutable::createFromFormat($format, $value);
-        if (! \is_string($afterStr)) {
-            return false;
-        }
-        $after = \DateTimeImmutable::createFromFormat($format, $afterStr);
-
-        if ($date === false || $after === false) {
-            return false;
-        }
-
-        return $date > $after;
+        return $date !== null && $date > $bound;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'date.after';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be a date after {after}.';
+        return new Violation(code: 'date.after', message: 'The {field} must be a date after {after}.');
     }
 }

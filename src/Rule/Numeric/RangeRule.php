@@ -6,50 +6,68 @@ namespace KaririCode\Validator\Rule\Numeric;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\NumericValue;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: RangeRule ──────────────────────────────────────────────────
+// A number within inclusive bounds.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a numeric value falls within min/max bounds.
+ * Accepts numbers from 'min' to 'max', both included; with one bound
+ * only, the other side is open and the message names only that bound.
+ * Integers are compared as integers.
  *
- * Parameters: `min` (int|float|null), `max` (int|float|null).
- * Both bounds are inclusive.
+ * Preconditions: 'min' or 'max', or both, as numbers.
  *
- * @package KaririCode\Validator\Rule\Numeric
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['age' => [['range', ['min' => 18, 'max' => 130]]]]
+ *
+ * References: SPEC-002 §3.
  */
 final readonly class RangeRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! is_numeric($value)) {
-            return false;
-        }
+        [$min, $max] = $this->bounds($context);
+        $number = NumericValue::of($value);
 
-        $numericValue = (float) $value;
-        $min = $context->getParameter('min');
-        $max = $context->getParameter('max');
-
-        if ($min !== null && is_numeric($min) && $numericValue < (float) $min) {
-            return false;
-        }
-
-        if ($max !== null && is_numeric($max) && $numericValue > (float) $max) {
-            return false;
-        }
-
-        return true;
+        return $number !== null && ($min === null || $number >= $min) && ($max === null || $number <= $max);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'numeric.range';
+        [$min, $max] = $this->bounds($context);
+
+        if ($max === null) {
+            return new Violation(code: 'numeric.range_min', message: 'The {field} must be at least {min}.');
+        }
+
+        return $min === null
+            ? new Violation(code: 'numeric.range_max', message: 'The {field} must be at most {max}.')
+            : new Violation(code: 'numeric.range', message: 'The {field} must be between {min} and {max}.');
     }
 
-    #[\Override]
-    public function getDefaultMessage(): string
+    /**
+     * @return array{int|float|null, int|float|null}
+     */
+    private function bounds(ValidationContext $context): array
     {
-        return 'The {field} must be between {min} and {max}.';
+        $min = $context->hasParameter('min') ? $context->numberParameter('min') : null;
+        $max = $context->hasParameter('max') ? $context->numberParameter('max') : null;
+
+        if ($min === null && $max === null) {
+            throw InvalidRuleException::missingBounds($context->field);
+        }
+
+        return [$min, $max];
     }
 }

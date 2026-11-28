@@ -6,43 +6,44 @@ namespace KaririCode\Validator\Rule\Collection;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: EachRule ───────────────────────────────────────────────────
+// Every item of an array must pass a rule.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates each element of an array against an inner rule.
+ * Applies the inner rule to each item, with the field's context, and
+ * fails with one error for the field when any item fails. An empty
+ * array passes; add 'count' to require items.
  *
- * Applies a single ValidationRule to every element. For multi-rule
- * element validation, wrap with CompositeRule.
+ * Preconditions: none; non-arrays fail.
  *
- * @package KaririCode\Validator\Rule\Collection
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless, if the inner rule is.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['emails' => [new EachRule(new EmailRule())]]
+ *
+ * References: SPEC-002 §7.
  */
 final readonly class EachRule implements ValidationRule
 {
     public function __construct(
         private ValidationRule $innerRule,
-    ) {
-    }
+    ) {}
 
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_array($value)) {
-            return false;
-        }
-
-        return array_all($value, fn ($element): bool => $this->innerRule->validate($element, $context));
+        return is_array($value) && array_all($value, fn(mixed $item): bool => $this->innerRule->validate($item, $context));
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'collection.each';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'Each item in {field} must be valid.';
+        return new Violation(code: 'collection.each', message: 'Each item in {field} must be valid.');
     }
 }

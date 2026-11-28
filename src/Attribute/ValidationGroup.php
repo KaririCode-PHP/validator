@@ -4,34 +4,40 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Attribute;
 
+use Attribute;
+
+// ── Attribute: ValidationGroup ───────────────────────────────────────
+// Places a property in validation groups.
+// ─────────────────────────────────────────────────────────────────────
+
 /**
- * Defines validation groups for selective rule execution.
+ * Names the groups a property's #[Validate] rules belong to, so one DTO
+ * serves several operations: validating with group 'create' skips the
+ * properties marked only 'update'. A property without this attribute is
+ * validated in every group.
  *
- * ```php
- * final readonly class UpdateUserRequest
- * {
- *     #[Validate('required', 'email')]
- *     #[ValidationGroup('create', 'update')]
- *     public string $email;
+ * Preconditions: none.
  *
- *     #[Validate('required', ['length', ['min' => 8]])]
- *     #[ValidationGroup('create')]
- *     public string $password;
- * }
- * ```
+ * Thread-safety: immutable.
  *
- * @package KaririCode\Validator\Attribute
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     #[Validate('required', 'uuid')]
+ *     #[ValidationGroup('update')]
+ *     public ?string $id = null;
+ *
+ * References: SPEC-001 §7.
  */
-#[\Attribute(\Attribute::TARGET_PROPERTY)]
+#[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class ValidationGroup
 {
-    /** @var array<string> */
+    /** @var list<string> */
     public array $groups;
 
     public function __construct(string ...$groups)
     {
-        $this->groups = $groups;
+        $this->groups = array_values($groups);
     }
 }

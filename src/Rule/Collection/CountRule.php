@@ -4,52 +4,75 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Rule\Collection;
 
+use Countable;
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: CountRule ──────────────────────────────────────────────────
+// An array or Countable with a size within bounds.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates array/countable element count within min/max bounds.
+ * Counts the items of an array or Countable and checks them against
+ * 'min' and 'max', both inclusive; with one bound only, the message
+ * names only that bound.
  *
- * Parameters: `min` (int, default 0), `max` (int|null).
+ * Preconditions: 'min' or 'max', or both, as integers.
  *
- * @package KaririCode\Validator\Rule\Collection
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['tags' => [['count', ['min' => 1, 'max' => 10]]]]
+ *
+ * References: SPEC-002 §7.
  */
 final readonly class CountRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_array($value) && ! $value instanceof \Countable) {
+        [$min, $max] = $this->bounds($context);
+
+        if (!is_array($value) && !$value instanceof Countable) {
             return false;
         }
 
-        $count = \count($value);
-        $minParam = $context->getParameter('min', 0);
-        $min = is_numeric($minParam) ? (int) $minParam : 0;
-        $maxParam = $context->getParameter('max');
+        $count = count($value);
 
-        if ($count < $min) {
-            return false;
-        }
-
-        if ($maxParam !== null && is_numeric($maxParam) && $count > (int) $maxParam) {
-            return false;
-        }
-
-        return true;
+        return ($min === null || $count >= $min) && ($max === null || $count <= $max);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'collection.count';
+        [$min, $max] = $this->bounds($context);
+
+        if ($max === null) {
+            return new Violation(code: 'collection.count_min', message: 'The {field} must contain at least {min} items.');
+        }
+
+        return $min === null
+            ? new Violation(code: 'collection.count_max', message: 'The {field} must contain at most {max} items.')
+            : new Violation(code: 'collection.count', message: 'The {field} must contain between {min} and {max} items.');
     }
 
-    #[\Override]
-    public function getDefaultMessage(): string
+    /**
+     * @return array{?int, ?int}
+     */
+    private function bounds(ValidationContext $context): array
     {
-        return 'The {field} must contain between {min} and {max} items.';
+        $min = $context->hasParameter('min') ? $context->intParameter('min') : null;
+        $max = $context->hasParameter('max') ? $context->intParameter('max') : null;
+
+        if ($min === null && $max === null) {
+            throw InvalidRuleException::missingBounds($context->field);
+        }
+
+        return [$min, $max];
     }
 }

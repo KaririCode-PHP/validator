@@ -4,26 +4,35 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Event;
 
+// ── Event: ValidationStartedEvent ────────────────────────────────────
+// Announces a validation before its first rule runs.
+// ─────────────────────────────────────────────────────────────────────
+
 /**
- * Emitted when a validation operation begins.
+ * Tells the observer which fields are about to be validated, in which
+ * group, and when (Unix time in seconds, with microseconds). It carries
+ * field names only, never values.
  *
- * ARFA 1.3 P5 (Continuous Observability): enables tracing and metrics.
+ * Preconditions: none.
  *
- * @package KaririCode\Validator\Event
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: immutable.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     $engine = new ValidatorEngine(observer: static fn (object $event) => $dispatcher->dispatch($event));
+ *
+ * References: ADR-006; ARFA 1.3 P5.
  */
 final readonly class ValidationStartedEvent
 {
     /**
-     * @param array<string> $fields    Fields being validated
-     * @param string|null   $group     Active validation group
-     * @param float         $timestamp Microtime when validation started
+     * @param list<string> $fields
      */
     public function __construct(
         public array $fields,
-        public ?string $group = null,
-        public float $timestamp = 0.0,
-    ) {
-    }
+        public ?string $group,
+        public float $timestamp,
+    ) {}
 }

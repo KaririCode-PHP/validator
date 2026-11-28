@@ -6,40 +6,41 @@ namespace KaririCode\Validator\Rule\Financial;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: BicRule ────────────────────────────────────────────────────
+// A BIC (SWIFT code) in 8 or 11 characters.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates BIC/SWIFT code format (ISO 9362).
+ * Accepts a party prefix of 4 letters, a country code of 2 letters, a
+ * suffix of 2 letters or digits and an optional branch of 3, ignoring
+ * case and surrounding whitespace. It does not check the country code
+ * against ISO 3166.
  *
- * Format: 4 letters (bank) + 2 letters (country) + 2 alphanum (location)
- * + optional 3 alphanum (branch, "XXX" = primary office).
+ * Preconditions: none; non-strings fail.
  *
- * @package KaririCode\Validator\Rule\Financial
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['swift' => ['bic']]
+ *
+ * References: ISO 9362:2022; SPEC-002 §9.
  */
 final readonly class BicRule implements ValidationRule
 {
-    private const string PATTERN = '/^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/';
-
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
-            return false;
-        }
-
-        return preg_match(self::PATTERN, strtoupper(trim($value))) === 1;
+        return is_string($value) && preg_match('/\A[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\z/', strtoupper(trim($value))) === 1;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'financial.bic';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} is not a valid BIC/SWIFT code.';
+        return new Violation(code: 'financial.bic', message: 'The {field} is not a valid BIC/SWIFT code.');
     }
 }

@@ -6,47 +6,46 @@ namespace KaririCode\Validator\Rule\Collection;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: KeyExistsRule ──────────────────────────────────────────────
+// An array that has a key.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that an array contains a specific key.
+ * Checks array_key_exists() for 'key', so a key holding null exists.
+ * PHP's key rules apply: "1" and 1 are the same key.
  *
- * Parameter: `key` (string).
+ * Preconditions: 'key' is an integer or a string.
  *
- * @package KaririCode\Validator\Rule\Collection
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['options' => [['key_exists', ['key' => 'mode']]]]
+ *
+ * References: SPEC-002 §7.
  */
 final readonly class KeyExistsRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_array($value)) {
-            return false;
+        $key = $context->hasParameter('key') ? $context->parameter('key') : throw InvalidRuleException::missingParameter(field: $context->field, parameter: 'key');
+
+        if (!is_int($key) && !is_string($key)) {
+            throw InvalidRuleException::invalidParameter(field: $context->field, parameter: 'key', expected: 'an integer or a string', given: get_debug_type($key));
         }
 
-        $key = $context->getParameter('key');
-
-        if ($key === null) {
-            return false;
-        }
-
-        if (! \is_string($key) && ! \is_int($key)) {
-            return false;
-        }
-
-        return \array_key_exists($key, $value);
+        return is_array($value) && array_key_exists($key, $value);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'collection.key_exists';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must contain the key {key}.';
+        return new Violation(code: 'collection.key_exists', message: 'The {field} must contain the key {key}.');
     }
 }

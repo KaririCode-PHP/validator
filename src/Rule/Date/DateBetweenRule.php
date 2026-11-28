@@ -6,54 +6,45 @@ namespace KaririCode\Validator\Rule\Date;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\DateValue;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: DateBetweenRule ────────────────────────────────────────────
+// A date strictly between two bounds.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a date falls between two boundaries (exclusive).
+ * Accepts a date later than 'after' and earlier than 'before', both
+ * excluded, read as in date_after and date_before.
  *
- * Parameters: `after` (string), `before` (string), `format` (string, default 'Y-m-d').
+ * Preconditions: 'after' and 'before' are dates in 'format' or DateTimeInterface instances.
  *
- * @package KaririCode\Validator\Rule\Date
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['travel_on' => [['date_between', ['after' => '2026-12-01', 'before' => '2027-01-31']]]]
+ *
+ * References: SPEC-002 §4.
  */
 final readonly class DateBetweenRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
-            return false;
-        }
+        $format = $context->stringParameter('format', 'Y-m-d');
+        $after = DateValue::bound(context: $context, name: 'after', format: $format);
+        $before = DateValue::bound(context: $context, name: 'before', format: $format);
+        $date = DateValue::of($value, $format);
 
-        $format = $context->getParameter('format', 'Y-m-d');
-        $format = \is_string($format) ? $format : 'Y-m-d';
-        $afterStr = $context->getParameter('after');
-        $beforeStr = $context->getParameter('before');
-
-        if ($afterStr === null || $beforeStr === null) {
-            return false;
-        }
-
-        $date = \DateTimeImmutable::createFromFormat($format, $value);
-        $after = (\is_string($afterStr) ? \DateTimeImmutable::createFromFormat($format, $afterStr) : false);
-        $before = (\is_string($beforeStr) ? \DateTimeImmutable::createFromFormat($format, $beforeStr) : false);
-
-        if ($date === false || $after === false || $before === false) {
-            return false;
-        }
-
-        return $date > $after && $date < $before;
+        return $date !== null && $date > $after && $date < $before;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'date.between';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be a date between {after} and {before}.';
+        return new Violation(code: 'date.between', message: 'The {field} must be a date between {after} and {before}.');
     }
 }

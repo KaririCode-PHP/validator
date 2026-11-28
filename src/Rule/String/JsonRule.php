@@ -6,37 +6,39 @@ namespace KaririCode\Validator\Rule\String;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: JsonRule ───────────────────────────────────────────────────
+// A string that is valid JSON.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a string is well-formed JSON.
+ * Accepts any JSON text json_validate() accepts (objects, arrays and
+ * scalars, nested up to 512 levels) without decoding it.
  *
- * @package KaririCode\Validator\Rule\String
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Preconditions: none; non-strings fail.
+ *
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['payload' => ['json']]
+ *
+ * References: RFC 8259; PHP json_validate(); SPEC-002 §2.
  */
 final readonly class JsonRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
-            return false;
-        }
-
-        json_decode($value);
-
-        return json_last_error() === JSON_ERROR_NONE;
+        return is_string($value) && json_validate($value);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'string.json';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be valid JSON.';
+        return new Violation(code: 'string.json', message: 'The {field} must be valid JSON.');
     }
 }

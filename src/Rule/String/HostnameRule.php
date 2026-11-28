@@ -6,37 +6,40 @@ namespace KaririCode\Validator\Rule\String;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: HostnameRule ───────────────────────────────────────────────
+// A DNS host name.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates RFC 952/1123 hostname format.
+ * Accepts dot-separated labels of 1 to 63 letters, digits and hyphens,
+ * none starting or ending with a hyphen, 253 characters at most.
+ * Internationalized names must be given in their ASCII (punycode) form.
  *
- * @package KaririCode\Validator\Rule\String
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Preconditions: none; non-strings fail.
+ *
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['host' => ['hostname']]
+ *
+ * References: RFC 1123 §2.1; RFC 1035 §2.3.4; SPEC-002 §2.
  */
 final readonly class HostnameRule implements ValidationRule
 {
-    private const string PATTERN = '/^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$/';
-
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value) || $value === '' || mb_strlen($value) > 253) {
-            return false;
-        }
-
-        return preg_match(self::PATTERN, $value) === 1;
+        return is_string($value) && strlen($value) <= 253 && preg_match('/\A(?!-)[A-Za-z0-9-]{1,63}(?<!-)(?:\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*\z/', $value) === 1;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'string.hostname';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be a valid hostname.';
+        return new Violation(code: 'string.hostname', message: 'The {field} must be a valid hostname.');
     }
 }

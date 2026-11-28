@@ -6,38 +6,46 @@ namespace KaririCode\Validator\Rule\Logic;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: ChoiceRule ─────────────────────────────────────────────────
+// The value must be one of a fixed list.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a value is one of the allowed choices.
+ * Passes when the value is identical (===) to one of the 'choices', so
+ * 1 and "1" are different choices.
  *
- * @package KaririCode\Validator\Rule\Logic
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Preconditions: 'choices' is a non-empty list.
+ *
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['status' => [['choice', ['choices' => ['draft', 'published']]]]]
+ *
+ * References: SPEC-002 §1.
  */
 final readonly class ChoiceRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        /** @var array<mixed> $choices */
-        $choices = $context->getParameter('choices', []);
+        $choices = $context->arrayParameter('choices');
 
         if ($choices === []) {
-            return true;
+            throw InvalidRuleException::invalidParameter(field: $context->field, parameter: 'choices', expected: 'a non-empty list');
         }
 
-        return \in_array($value, $choices, strict: true);
+        return in_array(needle: $value, haystack: $choices, strict: true);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'logic.choice';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} value is not a valid choice.';
+        return new Violation(code: 'logic.choice', message: 'The {field} value is not a valid choice.');
     }
 }

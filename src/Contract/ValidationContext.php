@@ -4,68 +4,67 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Contract;
 
+// ── Contract: ValidationContext ──────────────────────────────────────
+// What a rule may read besides the value: the field, the data, its parameters.
+// ─────────────────────────────────────────────────────────────────────
+
 /**
- * Immutable context passed to every validation rule during execution.
+ * Gives a rule the name of the field it checks, every field of the data
+ * (for cross-field rules), the validation group, and the parameters of
+ * this use of the rule, with readers that check a parameter's type. A
+ * parameter that is missing or of the wrong type is the application's
+ * mistake: the typed readers throw InvalidRuleException instead of
+ * letting a rule cast it.
  *
- * Carries metadata about the validation environment: the field being
- * validated, the root data structure, rule-specific configuration, and
- * the validation group. Rules use context to implement cross-field
- * validation (e.g. "confirm password matches password") without
- * coupling to the outer validation engine.
+ * Preconditions: field paths use dots for nesting ("address.city"); a
+ * key that contains dots itself is matched first.
  *
- * ## ARFA 1.3 Alignment
+ * Thread-safety: immutable; the with methods return copies.
  *
- * P1 (Immutable State): Context is readonly — rules cannot mutate it.
- * P3 (Adaptive Context): Carries runtime metadata for rule adaptation.
+ * Side effects: none.
  *
- * @package KaririCode\Validator\Contract
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Example:
+ *
+ *     $min = $context->intParameter('min', 0);
+ *     $other = $context->fieldValue($context->stringParameter('other'));
+ *
+ * References: ADR-001; SPEC-001 §4.
  */
 interface ValidationContext
 {
-    /**
-     * Field name being validated (dot-notation for nested: `address.city`).
-     */
-    public function getFieldName(): string;
+    public string $field { get; }
 
-    /**
-     * Root data structure under validation.
-     *
-     * Enables cross-field validation rules like `SameAs`, `RequiredWith`.
-     *
-     * @return array<string, mixed>
-     */
-    public function getRootData(): array;
+    /** @var array<array-key, mixed> */
+    public array $data { get; }
 
-    /**
-     * Rule-specific configuration parameters.
-     *
-     * @return array<string, mixed> e.g. ['min' => 3, 'max' => 255]
-     */
-    public function getParameters(): array;
+    /** @var array<string, mixed> */
+    public array $parameters { get; }
 
-    /**
-     * Single parameter by key with optional default.
-     */
-    public function getParameter(string $key, mixed $default = null): mixed;
+    public ?string $group { get; }
 
-    /**
-     * Active validation group (null = default group).
-     *
-     * Groups allow selective validation: `create`, `update`, `import`.
-     */
-    public function getGroup(): ?string;
-
-    /**
-     * New context scoped to a different field.
-     */
     public function withField(string $field): static;
 
     /**
-     * New context with merged parameters.
-     *
      * @param array<string, mixed> $parameters
      */
     public function withParameters(array $parameters): static;
+
+    public function hasParameter(string $name): bool;
+
+    public function parameter(string $name, mixed $default = null): mixed;
+
+    public function intParameter(string $name, ?int $default = null): int;
+
+    public function numberParameter(string $name, int|float|null $default = null): int|float;
+
+    public function stringParameter(string $name, ?string $default = null): string;
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    public function arrayParameter(string $name): array;
+
+    public function hasField(string $path): bool;
+
+    public function fieldValue(string $path): mixed;
 }

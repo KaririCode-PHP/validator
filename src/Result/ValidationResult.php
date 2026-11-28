@@ -4,143 +4,92 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Result;
 
+// ── Result: ValidationResult ─────────────────────────────────────────
+// Every error a validation found, in the order the rules ran.
+// ─────────────────────────────────────────────────────────────────────
+
 /**
- * Aggregates validation errors for a complete validation operation.
+ * Collects the errors of one validation, field by field and rule by rule,
+ * and answers the questions callers ask of them: is the data valid, what
+ * failed on this field, which fields failed, what are the messages per
+ * field. Results combine without changing either side.
  *
- * Collects ALL errors (not just the first), enabling UX patterns that
- * show every problem at once. Errors are grouped by field for easy
- * access in form rendering and API responses.
+ * Preconditions: none.
  *
- * ## ARFA 1.3 Alignment
+ * Thread-safety: immutable; merge() and with() return new results.
  *
- * P1 (Immutable State): Results are append-only; errors cannot be removed.
- * P2 (Reactive Composition): Results merge via `merge()` for pipeline composition.
+ * Side effects: none.
  *
- * ## Error Collection Strategy (ADR-001)
+ * Example:
  *
- * Collects all errors instead of fail-fast because:
- * 1. Better UX — users see all problems at once
- * 2. Enables cross-field validation without order dependency
- * 3. Composable — merge results from sub-validators
+ *     if (!$result->isValid()) {
+ *         return new JsonResponse(['errors' => $result->messages()], 422);
+ *     }
  *
- * References:
- * - Martin Fowler, "Notification Pattern", martinfowler.com (2004)
- *
- * @package KaririCode\Validator\Result
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * References: ADR-002 (collect-all); SPEC-001 §6.
  */
-final class ValidationResult
+final readonly class ValidationResult
 {
-    /** @var array<int, ValidationError> */
-    private array $errors = [];
+    /** @var list<ValidationError> */
+    public array $errors;
 
-    /**
-     * Adds an error to the result.
-     */
-    public function addError(ValidationError $error): self
+    public function __construct(ValidationError ...$errors)
     {
-        $this->errors[] = $error;
-
-        return $this;
+        $this->errors = array_values($errors);
     }
 
-    /**
-     * Creates and adds an error in one call.
-     *
-     * @param array<string, mixed> $context
-     */
-    public function add(
-        string $field,
-        string $errorCode,
-        string $message,
-        array $context = [],
-    ): self {
-        $this->errors[] = new ValidationError($field, $errorCode, $message, $context);
-
-        return $this;
-    }
-
-    /**
-     * Merges another result's errors into this one.
-     *
-     * Enables pipeline composition: each step validates independently,
-     * then results are merged for a unified error report.
-     */
-    public function merge(self $other): self
-    {
-        foreach ($other->errors as $error) {
-            $this->errors[] = $error;
-        }
-
-        return $this;
-    }
-
-    /**
-     * Whether the validated data passed all rules.
-     */
     public function isValid(): bool
     {
         return $this->errors === [];
     }
 
-    /**
-     * All collected errors.
-     *
-     * @return array<int, ValidationError>
-     */
-    public function getErrors(): array
+    public function errorCount(): int
     {
-        return $this->errors;
+        return count($this->errors);
     }
 
     /**
-     * Errors for a specific field.
-     *
-     * @return array<int, ValidationError>
+     * @return list<ValidationError>
      */
     public function errorsFor(string $field): array
     {
-        return array_values(
-            array_filter(
-                $this->errors,
-                static fn (ValidationError $error): bool => $error->field === $field,
-            ),
-        );
+        return array_values(array_filter($this->errors, static fn(ValidationError $error): bool => $error->field === $field));
     }
 
-    /**
-     * First error for a specific field, or null.
-     */
     public function firstErrorFor(string $field): ?ValidationError
     {
-        $errors = $this->errorsFor($field);
-
-        return $errors !== [] ? $errors[0] : null;
+        return $this->errorsFor($field)[0] ?? null;
     }
 
     /**
-     * All fields that have errors.
-     *
-     * @return array<string>
+     * @return list<string>
      */
     public function failedFields(): array
     {
-        return array_values(
-            array_unique(
-                array_map(
-                    static fn (ValidationError $error): string => $error->field,
-                    $this->errors,
-                ),
-            ),
-        );
+        return array_keys($this->messages());
     }
 
     /**
-     * Total error count.
+     * @return array<string, list<string>> field => messages, fields in the order they failed
      */
-    public function errorCount(): int
+    public function messages(): array
     {
-        return \count($this->errors);
+        $messages = [];
+
+        foreach ($this->errors as $error) {
+            $messages[$error->field][] = $error->message;
+        }
+
+        return $messages;
+    }
+
+    public function merge(self $other): self
+    {
+        return new self(...$this->errors, ...$other->errors);
+    }
+
+    public function with(ValidationError $error): self
+    {
+        return new self(...$this->errors, ...[$error]);
     }
 }

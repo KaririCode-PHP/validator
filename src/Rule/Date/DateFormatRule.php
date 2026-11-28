@@ -6,42 +6,47 @@ namespace KaririCode\Validator\Rule\Date;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\DateValue;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: DateFormatRule ─────────────────────────────────────────────
+// A date written exactly in a format.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a string matches a given date format.
+ * Accepts a string that parses in 'format' (Y-m-d unless set) to a real
+ * date and prints back identically, so "2026-2-5", "2026-02-30" and
+ * extra characters fail.
  *
- * Parameter: `format` (string, default 'Y-m-d').
- * Uses DateTimeImmutable::createFromFormat for strict parsing.
+ * Preconditions: 'format', when given, uses DateTimeImmutable::createFromFormat() letters.
  *
- * @package KaririCode\Validator\Rule\Date
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['birthday' => ['date_format'], 'starts_at' => [['date_format', ['format' => 'Y-m-d H:i']]]]
+ *
+ * References: ISO 8601-1:2019 (the default format); PHP DateTimeImmutable::createFromFormat(); SPEC-002 §4.
  */
 final readonly class DateFormatRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
+        $format = $context->stringParameter('format', 'Y-m-d');
+
+        if (!is_string($value)) {
             return false;
         }
 
-        $format = $context->getParameter('format', 'Y-m-d');
-        $format = \is_string($format) ? $format : 'Y-m-d';
-        $date = \DateTimeImmutable::createFromFormat($format, $value);
-
-        return $date !== false && $date->format($format) === $value;
+        return DateValue::parse($value, $format)?->format($format) === $value;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'date.format';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must match the date format {format}.';
+        return new Violation(code: 'date.format', message: 'The {field} must be a date in the format {format}.', parameters: ['format' => $context->stringParameter('format', 'Y-m-d')]);
     }
 }

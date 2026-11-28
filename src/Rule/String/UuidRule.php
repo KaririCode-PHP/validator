@@ -6,33 +6,39 @@ namespace KaririCode\Validator\Rule\String;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: UuidRule ───────────────────────────────────────────────────
+// A UUID in its canonical text form.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates UUID format (v1-v7, RFC 4122).
+ * Accepts 36 characters, 8-4-4-4-12 hexadecimal digits in either case,
+ * of any version and variant, the nil and max UUIDs included.
  *
- * @package KaririCode\Validator\Rule\String
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Preconditions: none; non-strings fail.
+ *
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['id' => ['uuid']]
+ *
+ * References: RFC 9562 §4; SPEC-002 §2.
  */
 final readonly class UuidRule implements ValidationRule
 {
-    private const string PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
-
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        return \is_string($value) && preg_match(self::PATTERN, $value) === 1;
+        return is_string($value) && preg_match('/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i', $value) === 1;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'string.uuid';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be a valid UUID.';
+        return new Violation(code: 'string.uuid', message: 'The {field} must be a valid UUID.');
     }
 }

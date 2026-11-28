@@ -6,39 +6,48 @@ namespace KaririCode\Validator\Rule\String;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: EndsWithRule ───────────────────────────────────────────────
+// A string ending with a suffix.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a string ends with a given suffix.
+ * Compares bytes, so the check is case-sensitive.
  *
- * Parameter: `suffix` (string).
+ * Preconditions: 'suffix' is a non-empty string.
  *
- * @package KaririCode\Validator\Rule\String
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['email' => [['ends_with', ['suffix' => '@example.com']]]]
+ *
+ * References: SPEC-002 §2.
  */
 final readonly class EndsWithRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
-            return false;
-        }
+        $suffix = $this->affix($context, 'suffix');
 
-        $suffix = ($context->getParameter('suffix', '') ?? '');
-
-        return \is_string($suffix) && str_ends_with($value, $suffix);
+        return is_string($value) && str_ends_with($value, $suffix);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'string.ends_with';
+        return new Violation(code: 'string.ends_with', message: 'The {field} must end with {suffix}.');
     }
 
-    #[\Override]
-    public function getDefaultMessage(): string
+    private function affix(ValidationContext $context, string $name): string
     {
-        return 'The {field} must end with {suffix}.';
+        $affix = $context->stringParameter($name);
+
+        return $affix !== '' ? $affix : throw InvalidRuleException::invalidParameter(field: $context->field, parameter: $name, expected: 'a non-empty string');
     }
 }

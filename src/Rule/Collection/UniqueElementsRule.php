@@ -6,42 +6,45 @@ namespace KaririCode\Validator\Rule\Collection;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: UniqueElementsRule ─────────────────────────────────────────
+// An array without repeated items.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that all elements in an array are unique.
+ * Fails when two items are identical: scalars and arrays compare by
+ * type and value (1, "1" and 1.0 are three items), objects by identity.
  *
- * Uses strict comparison for element uniqueness checking.
+ * Preconditions: none; non-arrays fail.
  *
- * @package KaririCode\Validator\Rule\Collection
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['emails' => ['unique']]
+ *
+ * References: SPEC-002 §7.
  */
 final readonly class UniqueElementsRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_array($value)) {
+        if (!is_array($value)) {
             return false;
         }
 
-        $serialized = array_map(
-            serialize(...),
-            $value,
-        );
+        $keys = array_map(static fn(mixed $item): int|string => is_object($item) ? spl_object_id($item) : serialize($item), $value);
 
-        return \count($serialized) === \count(array_unique($serialized));
+        return count(array_unique($keys)) === count($keys);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'collection.unique';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must contain only unique values.';
+        return new Violation(code: 'collection.unique', message: 'The {field} must contain only unique values.');
     }
 }

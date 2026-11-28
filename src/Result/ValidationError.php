@@ -4,35 +4,40 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Result;
 
+// ── Result: ValidationError ──────────────────────────────────────────
+// One failed rule on one field, with its message resolved.
+// ─────────────────────────────────────────────────────────────────────
+
 /**
- * Immutable value object representing a single validation error.
+ * Records that the value of a field broke a rule: the field as written in
+ * the rule map, the rule's error code, the message in the configured
+ * locale with its placeholders filled, and the parameters the message
+ * was filled from.
  *
- * Carries the field name, machine-readable error code, human-readable
- * message, and optional context for structured error reporting.
+ * Preconditions: built by the engine; the message is plain text, and
+ * whoever renders it into HTML escapes it.
  *
- * ARFA 1.3 P1: Readonly — errors are immutable once created.
+ * Thread-safety: immutable.
  *
- * References:
- * - RFC 7807 (Problem Details for HTTP APIs) — error structure inspiration
- * - Evans, E. "Domain-Driven Design" — Value Object pattern
+ * Side effects: none.
  *
- * @package KaririCode\Validator\Result
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Example:
+ *
+ *     $error->field;     // 'email'
+ *     $error->errorCode; // 'string.email'
+ *     $error->message;   // 'The email must be a valid email address.'
+ *
+ * References: ADR-002; SPEC-001 §6.
  */
 final readonly class ValidationError
 {
     /**
-     * @param string               $field     Field name (dot-notation for nested)
-     * @param string               $errorCode Machine-readable code (e.g. 'string.email')
-     * @param string               $message   Human-readable error message
-     * @param array<string, mixed> $context   Additional metadata (value, constraints)
+     * @param array<string, mixed> $parameters
      */
     public function __construct(
         public string $field,
         public string $errorCode,
         public string $message,
-        public array $context = [],
-    ) {
-    }
+        public array $parameters = [],
+    ) {}
 }

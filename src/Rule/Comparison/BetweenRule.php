@@ -6,45 +6,44 @@ namespace KaririCode\Validator\Rule\Comparison;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\NumericValue;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: BetweenRule ────────────────────────────────────────────────
+// A number strictly between two bounds.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a numeric value falls within exclusive bounds (min < value < max).
+ * Accepts numbers greater than 'min' and less than 'max', both
+ * excluded; 'range' is the inclusive variant.
  *
- * Parameters: `min` (int|float), `max` (int|float).
+ * Preconditions: 'min' and 'max' are numbers.
  *
- * @package KaririCode\Validator\Rule\Comparison
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['ratio' => [['between', ['min' => 0, 'max' => 1]]]]
+ *
+ * References: SPEC-002 §5.
  */
 final readonly class BetweenRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! is_numeric($value)) {
-            return false;
-        }
+        $min = $context->numberParameter('min');
+        $max = $context->numberParameter('max');
+        $number = NumericValue::of($value);
 
-        $numericValue = (float) $value;
-        $min = $context->getParameter('min');
-        $max = $context->getParameter('max');
-
-        if ($min === null || $max === null) {
-            return false;
-        }
-
-        return $numericValue > (float) (is_numeric($min) ? $min : 0) && $numericValue < (float) (is_numeric($max) ? $max : 0);
+        return $number !== null && $number > $min && $number < $max;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'comparison.between';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be between {min} and {max}.';
+        return new Violation(code: 'comparison.between', message: 'The {field} must be greater than {min} and less than {max}.');
     }
 }

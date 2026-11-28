@@ -6,40 +6,41 @@ namespace KaririCode\Validator\Rule\CrossField;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: DifferentFromRule ──────────────────────────────────────────
+// The value must differ from another field.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a field value differs from another field.
+ * Compares with !== against the field named by 'other' (a dotted path
+ * allowed); when that field is absent, the rule passes.
  *
- * Parameter: `other` (string) — field name to compare against.
+ * Preconditions: 'other' names a field.
  *
- * @package KaririCode\Validator\Rule\CrossField
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['new_password' => [['different_from', ['other' => 'current_password']]]]
+ *
+ * References: SPEC-002 §8.
  */
 final readonly class DifferentFromRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        $otherParam = $context->getParameter('other', '');
-        $otherField = \is_string($otherParam) ? $otherParam : '';
-        $rootData = $context->getRootData();
-        if (! \array_key_exists($otherField, $rootData)) {
-            return true; // Other field absent — no conflict
-        }
+        $other = $context->stringParameter('other');
 
-        return $value !== $rootData[$otherField];
+        return !$context->hasField($other) || $value !== $context->fieldValue($other);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'crossfield.different_from';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must differ from {other}.';
+        return new Violation(code: 'crossfield.different_from', message: 'The {field} must differ from {other}.');
     }
 }

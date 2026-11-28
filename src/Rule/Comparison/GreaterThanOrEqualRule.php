@@ -6,39 +6,43 @@ namespace KaririCode\Validator\Rule\Comparison;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\NumericValue;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: GreaterThanOrEqualRule ─────────────────────────────────────
+// A number greater than or equal to a threshold.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a numeric value is greater than or equal to a threshold.
+ * Accepts numbers greater than or equal to 'threshold'. Integers, finite floats and
+ * numeric strings are numbers; other values fail.
  *
- * Parameter: `threshold` (int|float).
+ * Preconditions: 'threshold' is a number.
  *
- * @package KaririCode\Validator\Rule\Comparison
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['quantity' => [['greater_than_or_equal', ['threshold' => 0]]]]
+ *
+ * References: SPEC-002 §5.
  */
 final readonly class GreaterThanOrEqualRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! is_numeric($value)) {
-            return false;
-        }
+        $threshold = $context->numberParameter('threshold');
+        $number = NumericValue::of($value);
 
-        $threshold = $context->getParameter('threshold');
-
-        return $threshold !== null && (float) $value >= (float) (is_numeric($threshold) ? $threshold : 0);
+        return $number !== null && $number >= $threshold;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'comparison.greater_than_or_equal';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be greater than or equal to {threshold}.';
+        return new Violation(code: 'comparison.greater_than_or_equal', message: 'The {field} must be greater than or equal to {threshold}.');
     }
 }

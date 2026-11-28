@@ -6,39 +6,48 @@ namespace KaririCode\Validator\Rule\String;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: StartsWithRule ─────────────────────────────────────────────
+// A string beginning with a prefix.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a string starts with a given prefix.
+ * Compares bytes, so the check is case-sensitive.
  *
- * Parameter: `prefix` (string).
+ * Preconditions: 'prefix' is a non-empty string.
  *
- * @package KaririCode\Validator\Rule\String
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['phone' => [['starts_with', ['prefix' => '+55']]]]
+ *
+ * References: SPEC-002 §2.
  */
 final readonly class StartsWithRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
-            return false;
-        }
+        $prefix = $this->affix($context, 'prefix');
 
-        $prefix = ($context->getParameter('prefix', '') ?? '');
-
-        return \is_string($prefix) && str_starts_with($value, $prefix);
+        return is_string($value) && str_starts_with($value, $prefix);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'string.starts_with';
+        return new Violation(code: 'string.starts_with', message: 'The {field} must start with {prefix}.');
     }
 
-    #[\Override]
-    public function getDefaultMessage(): string
+    private function affix(ValidationContext $context, string $name): string
     {
-        return 'The {field} must start with {prefix}.';
+        $affix = $context->stringParameter($name);
+
+        return $affix !== '' ? $affix : throw InvalidRuleException::invalidParameter(field: $context->field, parameter: $name, expected: 'a non-empty string');
     }
 }

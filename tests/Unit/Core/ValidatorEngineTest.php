@@ -4,351 +4,249 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Tests\Unit\Core;
 
+use ArrayObject;
+use KaririCode\Validator\Configuration\ValidatorConfiguration;
 use KaririCode\Validator\Contract\MessageResolver;
 use KaririCode\Validator\Contract\ValidationContext;
-use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Core\DefaultMessageResolver;
 use KaririCode\Validator\Core\InMemoryRuleRegistry;
 use KaririCode\Validator\Core\ValidatorEngine;
+use KaririCode\Validator\Event\ValidationCompletedEvent;
+use KaririCode\Validator\Event\ValidationStartedEvent;
 use KaririCode\Validator\Exception\InvalidRuleException;
-use KaririCode\Validator\Rule\Logic\RequiredRule;
+use KaririCode\Validator\Exception\ValidatorCode;
+use KaririCode\Validator\Result\ValidationError;
+use KaririCode\Validator\Rule\Logic\CallbackRule;
 use KaririCode\Validator\Rule\String\EmailRule;
-use KaririCode\Validator\Rule\String\LengthRule;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+// ── Unit: ValidatorEngineTest ────────────────────────────────────────
+// Rule maps, definitions, collect-all, limits, nullable, messages, events.
+// ─────────────────────────────────────────────────────────────────────
+
 #[CoversClass(ValidatorEngine::class)]
+#[CoversClass(InMemoryRuleRegistry::class)]
+#[CoversClass(ValidationStartedEvent::class)]
+#[CoversClass(ValidationCompletedEvent::class)]
 final class ValidatorEngineTest extends TestCase
 {
-    private InMemoryRuleRegistry $registry;
-    private ValidatorEngine $engine;
-
-    protected function setUp(): void
+    #[Test]
+    public function everyFailingRuleOfEveryFieldIsReportedInOrder(): void
     {
-        $this->registry = new InMemoryRuleRegistry();
-        $this->registry->register('required', new RequiredRule());
-        $this->registry->register('email', new EmailRule());
-        $this->registry->register('length', new LengthRule());
-
-        $this->engine = new ValidatorEngine($this->registry);
-    }
-
-    // ── Basic Validation ──────────────────────────────────────────
-
-    public function testValidDataReturnsValidResult(): void
-    {
-        $result = $this->engine->validate(
-            ['email' => 'user@example.com'],
-            ['email' => ['required', 'email']],
+        $result = (new ValidatorEngine())->validate(
+            ['email' => 'x', 'name' => '', 'age' => 30],
+            ['email' => ['required', 'email', ['length', ['min' => 5]]], 'name' => ['required', 'alpha'], 'age' => ['integer']],
         );
 
-        $this->assertTrue($result->isValid());
-        $this->assertSame(0, $result->errorCount());
+        self::assertSame(
+            [['email', 'string.email'], ['email', 'string.length_min'], ['name', 'logic.required'], ['name', 'string.alpha']],
+            array_map(static fn(ValidationError $error): array => [$error->field, $error->errorCode], $result->errors),
+        );
+        self::assertSame('The email must be at least 5 characters.', $result->errors[1]->message);
+        self::assertSame(['min' => 5], $result->errors[1]->parameters);
     }
 
-    public function testInvalidDataCollectsErrors(): void
+    #[Test]
+    public function definitionsMayBeAliasesRulesOrPairs(): void
     {
-        $result = $this->engine->validate(
-            ['email' => 'not-an-email'],
-            ['email' => ['required', 'email']],
+        $even = new CallbackRule(static fn(mixed $value): bool => is_int($value) && $value % 2 === 0, errorCode: 'custom.even', message: 'The {field} must be even, not {given}.');
+        $result = (new ValidatorEngine())->validate(
+            ['a' => 3, 'b' => 3, 'c' => 'ana', 'd' => 'ana'],
+            ['a' => [$even], 'b' => [[$even, ['given' => 3]]], 'c' => [['length', ['max' => 2]]], 'd' => [[new EmailRule()]]],
         );
 
-        $this->assertFalse($result->isValid());
-        $this->assertSame(1, $result->errorCount());
-        $this->assertSame('string.email', $result->getErrors()[0]->errorCode);
+        self::assertSame(['custom.even', 'custom.even', 'string.length_max', 'string.email'], array_column(array_map(static fn(ValidationError $e): array => (array) $e, $result->errors), 'errorCode'));
+        self::assertSame('The a must be even, not {given}.', $result->errors[0]->message);
+        self::assertSame('The b must be even, not 3.', $result->errors[1]->message);
     }
 
-    public function testMultipleFieldsMultipleErrors(): void
+    /**
+     * @return iterable<string, array{mixed, string}>
+     */
+    public static function invalidDefinitions(): iterable
     {
-        $result = $this->engine->validate(
-            ['email' => '', 'name' => ''],
-            [
-                'email' => ['required', 'email'],
-                'name' => ['required'],
-            ],
-        );
-
-        $this->assertFalse($result->isValid());
-        $this->assertCount(2, $result->failedFields());
+        yield 'rules not a list' => ['email', 'the rules of a field are a list'];
+        yield 'rules as a map' => [['first' => 'email'], 'the rules of a field are a list'];
+        yield 'a number' => [[42], 'a rule is an alias, a ValidationRule, or [alias or rule, parameters]'];
+        yield 'an empty pair' => [[[]], 'the first item names the rule, by alias or as a ValidationRule'];
+        yield 'three items' => [[['length', ['min' => 1], 'extra']], 'a rule is an alias, a ValidationRule, or [alias or rule, parameters]'];
+        yield 'a map' => [[['rule' => 'length']], 'a rule is an alias, a ValidationRule, or [alias or rule, parameters]'];
+        yield 'a rule that is a number' => [[[42, []]], 'the first item names the rule, by alias or as a ValidationRule'];
+        yield 'parameters not an array' => [[['length', 5]], 'the parameters of a rule are a map of names to values'];
+        yield 'parameters as a list' => [[['length', [5, 10]]], 'the parameters of a rule are a map of names to values'];
+        yield 'parameters partly a list' => [[['length', ['min' => 1, 10]]], 'the parameters of a rule are a map of names to values'];
     }
 
-    // ── Rule Definition Formats ───────────────────────────────────
-
-    public function testStringAliasFormat(): void
+    #[Test]
+    #[DataProvider('invalidDefinitions')]
+    public function malformedDefinitionsAreRefused(mixed $rules, string $reason): void
     {
-        $result = $this->engine->validate(
-            ['email' => ''],
-            ['email' => ['required']],
-        );
-
-        $this->assertFalse($result->isValid());
+        try {
+            (new ValidatorEngine())->validate(['name' => 'x'], ['name' => $rules]);
+            self::fail('A malformed definition was accepted.');
+        } catch (InvalidRuleException $exception) {
+            self::assertSame(ValidatorCode::InvalidRuleDefinition, $exception->errorCode);
+            self::assertSame('[VAL_3203] Invalid rule definition for field "name": ' . $reason . '.', $exception->getMessage());
+        }
     }
 
-    public function testArrayAliasWithParameters(): void
+    #[Test]
+    public function theEngineUsesTheRegistryAndAllTheParametersItIsGiven(): void
     {
-        $result = $this->engine->validate(
-            ['name' => 'ab'],
-            ['name' => [['length', ['min' => 3, 'max' => 50]]]],
-        );
+        $registry = new InMemoryRuleRegistry();
+        $registry->register('adult', new \KaririCode\Validator\Rule\Numeric\RangeRule());
+        $engine = new ValidatorEngine($registry);
 
-        $this->assertFalse($result->isValid());
-        $this->assertSame('string.length', $result->getErrors()[0]->errorCode);
+        self::assertSame($registry, $engine->registry);
+        self::assertSame(['age' => ['The age must be between 18 and 130.']], $engine->validate(['age' => 131], ['age' => [['adult', ['min' => 18, 'max' => 130]]]])->messages());
+        self::assertSame(['min' => 18, 'max' => 130], $engine->validate(['age' => 1], ['age' => [['adult', ['min' => 18, 'max' => 130]]]])->errors[0]->parameters);
     }
 
-    public function testDirectRuleInstance(): void
+    #[Test]
+    public function anUnknownAliasIsRefused(): void
     {
-        $result = $this->engine->validate(
-            ['email' => 'bad'],
-            ['email' => [new EmailRule()]],
-        );
+        $this->expectExceptionObject(InvalidRuleException::unknownAlias('emial'));
 
-        $this->assertFalse($result->isValid());
+        (new ValidatorEngine())->validate(['email' => 'x'], ['email' => [['emial', []]]]);
     }
 
-    public function testMixedRuleFormats(): void
+    #[Test]
+    public function nullableSkipsTheOtherRulesOnlyForNull(): void
     {
-        $result = $this->engine->validate(
-            ['email' => 'user@example.com'],
-            ['email' => [
-                'required',
-                new EmailRule(),
-                ['length', ['max' => 255]],
-            ]],
-        );
+        $engine = new ValidatorEngine();
+        $rules = ['nick' => [['length', ['min' => 3]], 'nullable']];
 
-        $this->assertTrue($result->isValid());
+        self::assertTrue($engine->validate(['nick' => null], $rules)->isValid());
+        self::assertTrue($engine->validate([], $rules)->isValid());
+        self::assertSame(['nick' => ['The nick must be at least 3 characters.']], $engine->validate(['nick' => 'ab'], $rules)->messages());
+        self::assertSame(['nick' => ['The nick field is required.']], $engine->validate(['nick' => null], ['nick' => ['required']])->messages());
     }
 
-    // ── Dot-Notation ──────────────────────────────────────────────
-
-    public function testDotNotationResolvesNestedValues(): void
+    #[Test]
+    public function failFastStopsAFieldAtItsFirstError(): void
     {
-        $result = $this->engine->validate(
-            ['address' => ['city' => '']],
-            ['address.city' => ['required']],
-        );
+        $engine = new ValidatorEngine(configuration: new ValidatorConfiguration(failFast: true));
+        $result = $engine->validate(['a' => '', 'b' => 'x'], ['a' => ['required', 'email'], 'b' => ['email', 'integer']]);
 
-        $this->assertFalse($result->isValid());
-        $this->assertSame('address.city', $result->getErrors()[0]->field);
+        self::assertSame(['a' => ['The a field is required.'], 'b' => ['The b must be a valid email address.']], $result->messages());
     }
 
-    public function testDotNotationDeepNesting(): void
+    #[Test]
+    public function maxErrorsPerFieldCapsEachField(): void
     {
-        $result = $this->engine->validate(
-            ['level1' => ['level2' => ['level3' => 'value']]],
-            ['level1.level2.level3' => ['required']],
-        );
+        $rules = ['a' => ['email', 'integer', 'uuid'], 'b' => ['email', 'integer', 'uuid']];
 
-        $this->assertTrue($result->isValid());
+        self::assertSame(4, (new ValidatorEngine(configuration: new ValidatorConfiguration(maxErrorsPerField: 2)))->validate(['a' => 'x', 'b' => 'y'], $rules)->errorCount());
+        self::assertSame(2, (new ValidatorEngine(configuration: new ValidatorConfiguration(maxErrorsPerField: 1)))->validate(['a' => 'x', 'b' => 'y'], $rules)->errorCount());
+        self::assertSame(6, (new ValidatorEngine())->validate(['a' => 'x', 'b' => 'y'], $rules)->errorCount());
     }
 
-    public function testDotNotationMissingKeyResolvesToNull(): void
+    #[Test]
+    public function fieldsAreReadByDottedPathAndRulesSeeTheWholeData(): void
     {
-        $result = $this->engine->validate(
-            ['address' => []],
-            ['address.zip' => ['required']],
-        );
+        $seen = new ArrayObject();
+        $spy = new CallbackRule(static function (mixed $value, ValidationContext $context) use ($seen): bool {
+            $seen->append([$value, $context->field, $context->group, $context->data]);
 
-        $this->assertFalse($result->isValid());
+            return true;
+        });
+        $data = ['address' => ['city' => 'Crato'], 7 => 'seven'];
+
+        (new ValidatorEngine())->validate($data, ['address.city' => [$spy], 7 => [$spy]], 'checkout');
+
+        self::assertSame([['Crato', 'address.city', 'checkout', $data], ['seven', '7', 'checkout', $data]], $seen->getArrayCopy());
     }
 
-    // ── Edge Cases ────────────────────────────────────────────────
-
-    public function testEmptyFieldRulesReturnsValid(): void
+    #[Test]
+    public function messagesComeFromTheResolverWithTheRuleAsFallback(): void
     {
-        $result = $this->engine->validate(['email' => 'test'], []);
-
-        $this->assertTrue($result->isValid());
-    }
-
-    public function testEmptyDataWithRequiredField(): void
-    {
-        $result = $this->engine->validate(
-            [],
-            ['email' => ['required']],
-        );
-
-        $this->assertFalse($result->isValid());
-    }
-
-    public function testMultipleRulesPerFieldCollectAllErrors(): void
-    {
-        $result = $this->engine->validate(
-            ['email' => ''],
-            ['email' => ['required', 'email']],
-        );
-
-        $emailErrors = $result->errorsFor('email');
-        // '' fails required (trimmed empty) AND email (invalid format)
-        $this->assertCount(2, $emailErrors);
-        $this->assertSame('logic.required', $emailErrors[0]->errorCode);
-        $this->assertSame('string.email', $emailErrors[1]->errorCode);
-    }
-
-    // ── Message Interpolation ─────────────────────────────────────
-
-    public function testDefaultMessageInterpolation(): void
-    {
-        $result = $this->engine->validate(
-            ['name' => 'ab'],
-            ['name' => [['length', ['min' => 3]]]],
-        );
-
-        $message = $result->getErrors()[0]->message;
-        $this->assertStringContainsString('name', $message);
-    }
-
-    // ── Custom MessageResolver ────────────────────────────────────
-
-    public function testCustomMessageResolver(): void
-    {
-        $resolver = new class () implements MessageResolver {
-            public function resolve(string $errorCode, array $parameters = [], ?string $locale = null): string
+        $resolver = new class implements MessageResolver {
+            public function resolve(string $errorCode, string $fallback, array $parameters = [], ?string $locale = null): string
             {
-                return "Custom: {$errorCode}";
+                return $errorCode . '|' . $fallback . '|' . json_encode($parameters) . '|' . var_export($locale, true);
             }
         };
 
-        $engine = new ValidatorEngine($this->registry, $resolver);
+        $result = (new ValidatorEngine(messages: $resolver))->validate(['a' => 'x'], ['a' => [['length', ['min' => 3]]]]);
 
-        $result = $engine->validate(
-            ['email' => 'bad'],
-            ['email' => ['email']],
-        );
-
-        $this->assertSame('Custom: string.email', $result->getErrors()[0]->message);
+        self::assertSame('string.length_min|The {field} must be at least {min} characters.|{"min":3,"field":"a"}|NULL', $result->errors[0]->message);
     }
 
-    // ── Validation Group Passthrough ──────────────────────────────
-
-    public function testGroupPassedToContext(): void
+    #[Test]
+    public function theDefaultsComeFromTheConfiguration(): void
     {
-        $capturedGroup = null;
-        $capturingRule = new class ($capturedGroup) implements ValidationRule {
-            private mixed $ref;
+        $configuration = new ValidatorConfiguration(defaultLocale: 'pt_BR', customMessages: ['pt_BR' => ['logic.required' => 'Preencha {field}.']]);
+        $engine = new ValidatorEngine(configuration: $configuration);
 
-            public function __construct(mixed &$ref)
-            {
-                $this->ref = &$ref;
-            }
-
-            public function validate(mixed $value, ValidationContext $context): bool
-            {
-                $this->ref = $context->getGroup();
-
-                return true;
-            }
-
-            public function getErrorCode(): string
-            {
-                return 'test';
-            }
-
-            public function getDefaultMessage(): string
-            {
-                return 'Test.';
-            }
-        };
-
-        $this->registry->register('capture_group', $capturingRule);
-
-        $this->engine->validate(
-            ['f' => 'v'],
-            ['f' => ['capture_group']],
-            'update',
-        );
-
-        $this->assertSame('update', $capturedGroup);
+        self::assertSame($configuration, $engine->configuration);
+        self::assertInstanceOf(DefaultMessageResolver::class, $engine->messages);
+        self::assertCount(52, $engine->registry->aliases());
+        self::assertSame(['nome' => ['Preencha nome.']], $engine->validate([], ['nome' => ['required']])->messages());
+        self::assertSame(['idade' => ['O campo idade deve ser um número inteiro.']], $engine->validate(['idade' => 'x'], ['idade' => ['integer']])->messages());
     }
 
-    // ── Error Handling ────────────────────────────────────────────
-
-    public function testUnknownAliasThrowsInvalidRuleException(): void
+    #[Test]
+    public function theObserverSeesTheStartAndTheEnd(): void
     {
-        $this->expectException(InvalidRuleException::class);
+        /** @var ArrayObject<int, object> $events */
+        $events = new ArrayObject();
+        $engine = new ValidatorEngine(observer: static function (object $event) use ($events): void {
+            $events->append($event);
+        });
 
-        $this->engine->validate(
-            ['f' => 'v'],
-            ['f' => ['nonexistent_alias']],
-        );
+        $result = $engine->validate(['a' => 'x'], ['a' => ['email'], 3 => ['nullable']], 'signup');
+
+        self::assertCount(2, $events);
+        $started = $events[0];
+        $completed = $events[1];
+        self::assertInstanceOf(ValidationStartedEvent::class, $started);
+        self::assertInstanceOf(ValidationCompletedEvent::class, $completed);
+        self::assertSame(['a', '3'], $started->fields);
+        self::assertSame('signup', $started->group);
+        self::assertEqualsWithDelta(microtime(true), $started->timestamp, 5.0);
+        self::assertSame($result, $completed->result);
+        self::assertGreaterThan(0.0, $completed->durationMs);
+        self::assertLessThan(5000.0, $completed->durationMs);
     }
 
-    // ── Error Context Passthrough ─────────────────────────────────
-
-    public function testParametersPassedAsErrorContext(): void
+    #[Test]
+    public function theRegistryKeepsRulesByAlias(): void
     {
-        $result = $this->engine->validate(
-            ['name' => 'ab'],
-            ['name' => [['length', ['min' => 3, 'max' => 50]]]],
-        );
+        $registry = new InMemoryRuleRegistry();
+        $rule = new EmailRule();
+        $registry->register('mail', $rule);
 
-        $error = $result->getErrors()[0];
-        $this->assertSame('string.length', $error->errorCode);
-        $this->assertSame(3, $error->context['min']);
-        $this->assertSame(50, $error->context['max']);
+        self::assertSame($rule, $registry->resolve('mail'));
+        self::assertTrue($registry->has('mail'));
+        self::assertFalse($registry->has('email'));
+        self::assertSame(['mail'], $registry->aliases());
+
+        foreach ([
+            [static fn() => $registry->register('mail', $rule), ValidatorCode::DuplicateRuleAlias, 'A rule is already registered under the alias "mail".'],
+            [static fn() => $registry->register('', $rule), ValidatorCode::InvalidRuleDefinition, 'A rule alias must not be empty.'],
+            [static fn() => $registry->resolve('email'), ValidatorCode::UnknownRuleAlias, 'No rule is registered under the alias "email".'],
+        ] as [$call, $code, $message]) {
+            try {
+                $call();
+                self::fail($message);
+            } catch (InvalidRuleException $exception) {
+                self::assertSame($code, $exception->errorCode);
+                self::assertStringEndsWith($message, $exception->getMessage());
+            }
+        }
     }
 
-    // ── Null Group Default ────────────────────────────────────────
-
-    public function testDefaultGroupIsNull(): void
+    #[Test]
+    public function theDefaultRegistryHoldsTheFiftyTwoParameterizedRules(): void
     {
-        $capturedGroup = 'sentinel';
-        $capturingRule = new class ($capturedGroup) implements ValidationRule {
-            private mixed $ref;
+        $aliases = InMemoryRuleRegistry::withDefaults()->aliases();
 
-            public function __construct(mixed &$ref)
-            {
-                $this->ref = &$ref;
-            }
-
-            public function validate(mixed $value, ValidationContext $context): bool
-            {
-                $this->ref = $context->getGroup();
-
-                return true;
-            }
-
-            public function getErrorCode(): string
-            {
-                return 'test';
-            }
-
-            public function getDefaultMessage(): string
-            {
-                return 'Test.';
-            }
-        };
-
-        $this->registry->register('capture_null', $capturingRule);
-
-        $this->engine->validate(
-            ['f' => 'v'],
-            ['f' => ['capture_null']],
-        );
-
-        $this->assertNull($capturedGroup);
-    }
-
-    public function testRuleObjectInArrayDefinition(): void
-    {
-        // Covers ValidatorEngine::resolveRule() L164: the ':$alias' branch where
-        // the first element is a ValidationRule object, not a string alias.
-        $inlineRule = new RequiredRule();
-        $result = $this->engine->validate(
-            ['name' => 'Alice'],
-            ['name' => [[$inlineRule, []]]],  // [[ruleObject, params]]
-        );
-        $this->assertTrue($result->isValid());
-    }
-
-    public function testInvalidRuleTypeIsSkipped(): void
-    {
-        // Covers ValidatorEngine::validate() L72: the type-guard `continue`
-        // when $ruleDefinition is not string, ValidationRule, or array.
-        // An integer definition is silently skipped — field remains valid.
-        $result = $this->engine->validate(
-            ['name' => 'Alice'],
-            ['name' => [42]], // 42 is not a valid rule definition type
-        );
-        $this->assertTrue($result->isValid());
+        self::assertCount(52, $aliases);
+        self::assertSame(['required', 'not_null', 'nullable', 'choice', 'email'], array_slice($aliases, 0, 5));
+        self::assertContains('cnpj', $aliases);
+        self::assertNotContains('each', $aliases);
     }
 }

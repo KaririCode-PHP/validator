@@ -4,51 +4,52 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Rule\Logic;
 
+use Closure;
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: ConditionalRule ────────────────────────────────────────────
+// Applies a rule only when a condition holds.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates only when a precondition is met.
+ * Runs the inner rule only when the condition closure returns true for
+ * the value and the context (for example, another field's value);
+ * otherwise it passes. When the inner rule fails, its own error is
+ * reported.
  *
- * Wraps another rule, executing it only if the condition callable
- * returns true. Useful for conditional requirements:
- * "required if country is BR".
+ * Preconditions: the condition has no side effects.
  *
- * @package KaririCode\Validator\Rule\Logic
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless, if the condition and the inner rule are.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     $cnpjForCompanies = new ConditionalRule(
+ *         static fn (mixed $value, ValidationContext $context): bool => $context->fieldValue('type') === 'company',
+ *         new CnpjRule(),
+ *     );
+ *
+ * References: SPEC-002 §1.
  */
 final readonly class ConditionalRule implements ValidationRule
 {
-    /**
-     * @param \Closure(mixed, ValidationContext): bool $condition  Precondition
-     * @param ValidationRule                           $innerRule  Rule to apply when condition is met
-     */
     public function __construct(
-        private \Closure $condition,
+        private Closure $condition,
         private ValidationRule $innerRule,
-    ) {
-    }
+    ) {}
 
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! ($this->condition)($value, $context)) {
-            return true; // Condition not met — skip validation
-        }
-
-        return $this->innerRule->validate($value, $context);
+        return ($this->condition)($value, $context) !== true || $this->innerRule->validate($value, $context);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return $this->innerRule->getErrorCode();
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return $this->innerRule->getDefaultMessage();
+        return $this->innerRule->violation($context);
     }
 }

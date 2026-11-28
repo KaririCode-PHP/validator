@@ -6,35 +6,66 @@ namespace KaririCode\Validator\Rule\String;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Exception\InvalidRuleException;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: UrlRule ────────────────────────────────────────────────────
+// An absolute URL with an allowed scheme.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates URL format using PHP's FILTER_VALIDATE_URL.
+ * Accepts what FILTER_VALIDATE_URL accepts and whose scheme is in
+ * 'schemes' (http and https unless set). The scheme check is what keeps
+ * javascript:, data: and file: URLs out of links built from input.
  *
- * @package KaririCode\Validator\Rule\String
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Preconditions: 'schemes', when given, is a list of lower-case scheme names.
+ *
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['website' => ['url'], 'feed' => [['url', ['schemes' => ['https']]]]]
+ *
+ * References: RFC 3986 §3.1; OWASP ASVS 5.0 V1.2 (URL encoding and allow-listed schemes); SPEC-002 §2.
  */
 final readonly class UrlRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
+        $schemes = $this->schemes($context);
+
+        if (!is_string($value) || filter_var($value, FILTER_VALIDATE_URL) === false) {
             return false;
         }
 
-        return filter_var($value, FILTER_VALIDATE_URL) !== false;
+        return in_array(needle: strtolower((string) parse_url($value, PHP_URL_SCHEME)), haystack: $schemes, strict: true);
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'string.url';
+        return new Violation(code: 'string.url', message: 'The {field} must be a valid URL.');
     }
 
-    #[\Override]
-    public function getDefaultMessage(): string
+    /**
+     * @return list<string>
+     */
+    private function schemes(ValidationContext $context): array
     {
-        return 'The {field} must be a valid URL.';
+        if (!$context->hasParameter('schemes')) {
+            return ['http', 'https'];
+        }
+
+        $schemes = $context->arrayParameter('schemes');
+
+        if ($schemes === [] || !array_is_list($schemes) || !array_all($schemes, static fn(mixed $scheme): bool => is_string($scheme))) {
+            throw InvalidRuleException::invalidParameter(field: $context->field, parameter: 'schemes', expected: 'a non-empty list of scheme names', given: get_debug_type($schemes));
+        }
+
+        /** @var list<string> $schemes */
+        return array_map(strtolower(...), $schemes);
     }
 }

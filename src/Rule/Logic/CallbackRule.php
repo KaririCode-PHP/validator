@@ -4,49 +4,54 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Rule\Logic;
 
-use KaririCode\Validator\Contract\{ValidationContext, ValidationRule};
+use Closure;
+use KaririCode\Validator\Contract\ValidationContext;
+use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: CallbackRule ───────────────────────────────────────────────
+// A check written as a closure.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates using a user-supplied callable.
+ * Wraps a closure that receives the value and the context and returns
+ * true for a valid value. Anything other than true is a failure, so a
+ * closure that returns 1 or "yes" fails closed. The error code and the
+ * message are the application's.
  *
- * Escape hatch for ad-hoc validation without creating a class:
- * ```php
- * new CallbackRule(fn($v) => $v % 2 === 0, 'logic.even', 'Must be even')
- * ```
+ * Preconditions: the closure has no side effects; it may run for every request.
  *
- * @package KaririCode\Validator\Rule\Logic
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless, if the closure is.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     $registry->register('even', new CallbackRule(
+ *         static fn (mixed $value): bool => is_int($value) && $value % 2 === 0,
+ *         errorCode: 'custom.even',
+ *         message: 'The {field} must be even.',
+ *     ));
+ *
+ * References: SPEC-002 §1.
  */
 final readonly class CallbackRule implements ValidationRule
 {
-    /**
-     * @param \Closure(mixed, ValidationContext): bool $callback  Validation callable
-     * @param string                                   $errorCode Custom error code
-     * @param string                                   $message   Custom error message
-     */
     public function __construct(
-        private \Closure $callback,
+        private Closure $callback,
         private string $errorCode = 'logic.callback',
         private string $message = 'The {field} is invalid.',
-    ) {
-    }
+    ) {}
 
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        return ($this->callback)($value, $context);
+        return ($this->callback)($value, $context) === true;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return $this->errorCode;
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return $this->message;
+        return new Violation(code: $this->errorCode, message: $this->message);
     }
 }

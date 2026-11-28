@@ -6,42 +6,41 @@ namespace KaririCode\Validator\Rule\String;
 
 use KaririCode\Validator\Contract\ValidationContext;
 use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: EmailRule ──────────────────────────────────────────────────
+// An email address, as PHP validates them.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates email format using PHP's FILTER_VALIDATE_EMAIL.
+ * Accepts the addresses FILTER_VALIDATE_EMAIL accepts: RFC 5321 syntax
+ * with ASCII local parts, 254 characters at most (the longest address an
+ * SMTP path carries; the filter enforces it). It checks syntax only: no
+ * DNS lookup, no mailbox.
  *
- * Delegates to filter_var() which implements RFC 5322 validation.
- * For stricter DNS-based validation, compose with a DnsCheckRule.
+ * Preconditions: none; non-strings fail.
  *
- * References:
- * - RFC 5322: Internet Message Format
- * - PHP Manual: filter_var, FILTER_VALIDATE_EMAIL
+ * Thread-safety: stateless.
  *
- * @package KaririCode\Validator\Rule\String
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['email' => ['required', 'email']]
+ *
+ * References: RFC 5321 §4.1.2 and §4.5.3.1.3; PHP FILTER_VALIDATE_EMAIL; SPEC-002 §2.
  */
 final readonly class EmailRule implements ValidationRule
 {
     #[\Override]
     public function validate(mixed $value, ValidationContext $context): bool
     {
-        if (! \is_string($value)) {
-            return false;
-        }
-
-        return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
+        return is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'string.email';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must be a valid email address.';
+        return new Violation(code: 'string.email', message: 'The {field} must be a valid email address.');
     }
 }

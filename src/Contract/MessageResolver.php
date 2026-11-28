@@ -4,35 +4,32 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Contract;
 
+// ── Contract: MessageResolver ────────────────────────────────────────
+// Turns an error code into the message a person reads.
+// ─────────────────────────────────────────────────────────────────────
+
 /**
- * Resolves validation error messages with i18n and placeholder support.
+ * Picks the message for an error code in a locale and fills its
+ * {placeholders} from the parameters; when it has no message for the
+ * code, it fills the fallback the rule wrote. Plug in a translator here.
  *
- * Separates message resolution from validation logic, enabling:
- * locale-based messages, custom message overrides per field,
- * and placeholder interpolation (`{min}`, `{max}`, `{field}`).
+ * Preconditions: parameters map placeholder names to values; values that
+ * are not scalars, lists of scalars or dates are left out.
  *
- * ## ARFA 1.3 Alignment
+ * Thread-safety: implementations decide; the default one is immutable.
  *
- * P4 (Protocol Agnostic): Messages resolved independently of transport.
+ * Side effects: none.
  *
- * @package KaririCode\Validator\Contract
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Example:
+ *
+ *     $message = $resolver->resolve(errorCode: 'string.email', fallback: 'The {field} must be a valid email address.', parameters: ['field' => 'email']);
+ *
+ * References: ADR-005.
  */
 interface MessageResolver
 {
     /**
-     * Resolves the error message for a given error code.
-     *
-     * @param string               $errorCode  Dot-notation code (e.g. 'string.email')
-     * @param array<string, mixed> $parameters Placeholder values for interpolation
-     * @param string|null          $locale     Target locale (null = default)
-     *
-     * @return string Resolved, interpolated message
+     * @param array<string, mixed> $parameters
      */
-    public function resolve(
-        string $errorCode,
-        array $parameters = [],
-        ?string $locale = null,
-    ): string;
+    public function resolve(string $errorCode, string $fallback, array $parameters = [], ?string $locale = null): string;
 }

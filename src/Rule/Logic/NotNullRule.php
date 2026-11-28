@@ -4,16 +4,29 @@ declare(strict_types=1);
 
 namespace KaririCode\Validator\Rule\Logic;
 
-use KaririCode\Validator\Contract\{ValidationContext, ValidationRule};
+use KaririCode\Validator\Contract\ValidationContext;
+use KaririCode\Validator\Contract\ValidationRule;
+use KaririCode\Validator\Result\Violation;
+
+// ── Rule: NotNullRule ────────────────────────────────────────────────
+// The value must not be null.
+// ─────────────────────────────────────────────────────────────────────
 
 /**
- * Validates that a value is not null.
+ * Fails only for null; an empty string or array passes. Use 'required'
+ * to reject those too.
  *
- * Unlike RequiredRule, this accepts empty strings and empty arrays.
+ * Preconditions: none.
  *
- * @package KaririCode\Validator\Rule\Logic
- * @author  Walmir Silva <walmir.silva@kariricode.org>
- * @since   3.1.0 ARFA 1.3
+ * Thread-safety: stateless.
+ *
+ * Side effects: none.
+ *
+ * Example:
+ *
+ *     ['middle_name' => ['not_null']]
+ *
+ * References: SPEC-002 §1.
  */
 final readonly class NotNullRule implements ValidationRule
 {
@@ -24,14 +37,8 @@ final readonly class NotNullRule implements ValidationRule
     }
 
     #[\Override]
-    public function getErrorCode(): string
+    public function violation(ValidationContext $context): Violation
     {
-        return 'logic.not_null';
-    }
-
-    #[\Override]
-    public function getDefaultMessage(): string
-    {
-        return 'The {field} must not be null.';
+        return new Violation(code: 'logic.not_null', message: 'The {field} must not be null.');
     }
 }
